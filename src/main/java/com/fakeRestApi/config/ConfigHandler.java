@@ -27,10 +27,15 @@ public class ConfigHandler {
     }
 
     public static String getBaseUrl() {
-        return PROPERTIES.getProperty("base.api.url");
+        return getProperty("base.api.url");
     }
 
     public static String getLogLevel() {
-        return PROPERTIES.getProperty("log.level", "INFO");
+        return System.getProperty("log.level",
+                PROPERTIES.getProperty("log.level", "INFO"));
+    }
+
+    private static String getProperty(String key) {
+        return System.getProperty(key, PROPERTIES.getProperty(key));
     }
 }
