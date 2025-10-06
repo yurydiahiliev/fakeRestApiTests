@@ -1,6 +1,7 @@
 package com.fakeRestApi.apiClient;
 
 import com.fakeRestApi.config.ConfigHandler;
+
 import io.qameta.allure.restassured.AllureRestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.Filter;
@@ -13,11 +14,14 @@ import io.restassured.specification.RequestSpecification;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.restassured.RestAssured.given;
+
 public abstract class BaseApi {
 
     protected final RequestSpecification requestSpecification;
 
     protected BaseApi() {
+        System.setProperty("log.level", ConfigHandler.getLogLevel());
         String baseUrl = ConfigHandler.getBaseUrl();
         String logLevel = ConfigHandler.getLogLevel();
 
@@ -42,7 +46,7 @@ public abstract class BaseApi {
         return "DEBUG".equalsIgnoreCase(level) || "TRACE".equalsIgnoreCase(level);
     }
 
-    protected RequestSpecification spec() {
-        return requestSpecification;
+    public RequestSpecification spec() {
+        return given().spec(requestSpecification);
     }
 }
