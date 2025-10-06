@@ -36,7 +36,7 @@ public class GetBooksApiTests {
     @Test
     @Description("Verify GET /Books returns non-empty list and valid fields")
     @Severity(SeverityLevel.CRITICAL)
-    void checkGetAllBooksShouldReturnAvailableBooksList() {
+    void checkGetAllBooksShouldReturnValidBooksList() {
         List<Book> books = booksApi.getBooks();
 
         assertThat(books)
@@ -73,7 +73,7 @@ public class GetBooksApiTests {
     @Test
     @Description("Verify GET /Books/{id} returns the correct book when using a valid random ID")
     @Severity(SeverityLevel.CRITICAL)
-    void checkGetBookByRandomIdShouldReturnValidBook() {
+    void checkGetBookByRandomIdShouldReturnValidBookById() {
         int randomIndex = new Random().nextInt(allBooks.size());
         Book expectedBook = allBooks.get(randomIndex);
         Book actualBook = booksApi.getBookById(expectedBook.id());
@@ -107,7 +107,7 @@ public class GetBooksApiTests {
     @ValueSource(strings = {"null", "abc", "ю", "!", "$"})
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify GET /Books/{id} returns 400 Bad Request when ID is invalid")
-    void checkGetBookWithInvalidIdShouldReturn400(String invalidId) {
+    void checkGetBookWithInvalidIdShouldReturnBadRequest(String invalidId) {
         Response response = booksApi.spec()
                 .get("/Books/" + invalidId) // simulate invalid IDs directly in path
                 .then()
@@ -148,7 +148,7 @@ public class GetBooksApiTests {
     @ValueSource(strings = {"0", "999999999", "-5"})
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify GET /Books/{id} returns 404 Not Found for nonexistent or invalid numeric IDs")
-    void checkGetBookWithNonexistentIdShouldReturn404(String invalidId) {
+    void checkGetBookWithNonexistentIdShouldReturnNotFound(String invalidId) {
         Response response = booksApi.spec()
                 .get("/Books/" + invalidId)
                 .then()
@@ -189,7 +189,7 @@ public class GetBooksApiTests {
     @Test
     @Description("Verify that all book IDs are unique across the list")
     @Severity(SeverityLevel.NORMAL)
-    void checkBookIdsAreUnique() {
+    void checkReturnedBookIdsAreUnique() {
         assertThat(allBooks)
                 .as("Book list must be initialized from previous test")
                 .isNotNull();
@@ -216,8 +216,8 @@ public class GetBooksApiTests {
                 .isNotNull()
                 .isNotEmpty();
 
-        boolean isSequential = Stream.iterate(1, i -> i < allBooks.size(), i -> i + 1)
-                .allMatch(i -> allBooks.get(i).id() - allBooks.get(i - 1).id() == 1);
+        boolean isSequential = Stream.iterate(1, index -> index < allBooks.size(), index -> index + 1)
+                .allMatch(index -> allBooks.get(index).id() - allBooks.get(index - 1).id() == 1);
 
         assertThat(isSequential)
                 .as("Book IDs should increase sequentially (1, 2, 3, ...)")
@@ -233,7 +233,6 @@ public class GetBooksApiTests {
     }
 
     @Test
-    @Order(4)
     @Description("Verify that each next book has an earlier publish date than the previous one (newest to oldest order)")
     @Severity(SeverityLevel.NORMAL)
     void checkBooksPublishDateIsChronologicallyDecreasing() {
