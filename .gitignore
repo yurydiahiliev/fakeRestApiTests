@@ -1,0 +1,127 @@
+# ============================
+# Java / Gradle project ignore
+# ============================
+
+# Compiled class files
+*.class
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# ============================
+# Gradle
+# ============================
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+gradle-app.properties
+
+# Gradle cache & logs
+.gradle/
+.gradle-cache/
+**/build/
+**/out/
+.gradle-build/
+.gradle-test-kit/
+
+# Wrapper binaries
+gradlew
+gradlew.bat
+
+# ============================
+# IntelliJ / Eclipse / VS Code
+# ============================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# ============================
+# OS / System Files
+# ============================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================
+# Logs & Temp Files
+# ============================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# ============================
+# Environment & Secrets
+# ============================
+.env
+.env.*
+*.env.local
+.envrc
+.secret
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# ============================
+# Test Reports & Coverage
+# ============================
+# JUnit 5 reports
+test-results/
+surefire-reports/
+jacoco/
+coverage/
+target/
+reports/
+
+# ============================
+# Allure Reports
+# ============================
+allure-results/
+allure-report/
+allure-history/
+
+# ============================
+# REST Assured / API test outputs
+# ============================
+http-request.log
+http-response.log
+*.har
+response_bodies/
+request_bodies/
+
+# ============================
+# Other tool-specific
+# ============================
+.idea_modules/
+*.swp
+*.bak
+*.orig
+*.rej
+replay_pid*
+
+# ============================
+# Distribution artifacts
+# ============================
+dist/
+bin/
+libs/
+*.jar
+*.war
+*.exe
+*.dll
+*.so
+*.dylib
