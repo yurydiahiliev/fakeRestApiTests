@@ -10,6 +10,28 @@ Built with **Gradle 8.10** and **Java 21**.
 
 ---
 
+## API Documentation (Swagger UI)
+
+The project under test uses the public **Fake REST API**.
+
+You can explore and test all available endpoints directly via Swagger UI:
+
+ **[Fake REST API Swagger Docs](https://fakerestapi.azurewebsites.net/index.html)**
+
+This interactive documentation provides:
+- All available endpoints (`/Books`, `/Authors`, `/Activities`, `/Users`, etc.)
+- Supported HTTP methods (GET, POST, PUT, DELETE)
+- Request/response schemas
+- Example payloads and responses
+
+> **Note:**  
+> Current automated test coverage in this repository includes only the **Books** and **Authors** API modules.
+
+You can use this Swagger UI both for manual exploration and to verify API responses that the automated tests assert against.
+
+---
+
+
 ## Tech stack
 
 | Layer | Tool |
