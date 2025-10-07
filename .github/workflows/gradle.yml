@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Fake Rest Api Tests
+    name: Run API Tests and Generate Allure Report
     runs-on: ubuntu-latest
 
     steps:
@@ -23,26 +23,30 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v3
+      # ✅ Use the Gradle Wrapper version (8.10) from your repo, not 9.x on runner
+      - name: Setup Gradle Wrapper
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper  # <-- ensures 8.10 from gradle-wrapper.properties
+          cache-disabled: false
+
+      - name: Grant execute permissions for Gradle wrapper
+        run: chmod +x gradlew
 
       - name: Display Gradle and Java versions
         run: |
-          gradle -v
+          ./gradlew -v
           java -version
 
-      - name: Run Tests (continue on failure, minimal logs)
-        run: |
-          gradle clean test --console=plain --no-daemon --warning-mode=none --quiet || true
+      - name: Run Tests
+        run: ./gradlew clean test --no-daemon --console=plain --warning-mode=none --quiet || true
         env:
           LOG_LEVEL: INFO
 
-      - name: Generate Allure Report (even if tests failed)
-        if: always()
-        run: |
-          gradle allureReport --console=plain --no-daemon --warning-mode=none --quiet || true
+      - name: Generate Allure Report
+        run: ./gradlew allureReport --no-daemon --console=plain --warning-mode=none --quiet || true
 
-      - name: Upload Allure Report Artifact (always upload)
+      - name: Upload Allure Report Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
