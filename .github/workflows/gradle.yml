@@ -26,21 +26,18 @@ jobs:
       - name: Set up Gradle
         uses: gradle/gradle-build-action@v3
 
-      - name: Grant execute permissions for Gradle wrapper
-        run: chmod +x gradlew
-
       - name: Display Gradle and Java versions
         run: |
-          ./gradlew -v
+          gradle -v
           java -version
 
       - name: Run Tests
-        run: ./gradlew clean test -i
+        run: gradle clean test -i
         env:
           LOG_LEVEL: INFO
 
       - name: Generate Allure Report
-        run: ./gradlew allureReport
+        run: gradle allureReport
 
       - name: Upload Allure Report Artifact
         uses: actions/upload-artifact@v4
