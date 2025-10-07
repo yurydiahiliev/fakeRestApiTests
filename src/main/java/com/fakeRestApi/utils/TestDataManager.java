@@ -105,14 +105,29 @@ public class TestDataManager {
         int randomId = ThreadLocalRandom.current().nextInt(1, 9999);
         int randomBookId = ThreadLocalRandom.current().nextInt(1, 100);
 
-        return switch (fieldName.toLowerCase()) {
-            case "id" -> Author.builder().id(randomId).build();
-            case "idbook" -> Author.builder().idBook(randomBookId).build();
-            case "firstname" -> Author.builder().firstName(faker.name().firstName()).build();
-            case "lastname" -> Author.builder().lastName(faker.name().lastName()).build();
-            default -> throw new IllegalArgumentException("Unknown field name: " + fieldName);
-        };
+        Author.AuthorBuilder builder = Author.builder()
+                .id(0)
+                .idBook(0);
+
+        switch (fieldName.toLowerCase()) {
+            case "id":
+                builder.id(randomId);
+                break;
+            case "idbook":
+                builder.idBook(randomBookId);
+                break;
+            case "firstname":
+                builder.firstName(faker.name().firstName());
+                break;
+            case "lastname":
+                builder.lastName(faker.name().lastName());
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown field name: " + fieldName);
+        }
+        return builder.build();
     }
+
 
     public static Author authorWithValidFields() {
         return Author.builder()

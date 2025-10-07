@@ -4,13 +4,11 @@ import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
 import io.qameta.allure.*;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 
 import java.time.Instant;
 
-import static com.fakeRestApi.apiClient.BooksApi.BOOKS_PATH;
-import static org.apache.http.HttpStatus.*;
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
@@ -22,120 +20,89 @@ public class UpdateBooksTests extends BaseApiTest {
     @Test
     @Description("Verify updating an existing book successfully changes its fields and returns 200 OK")
     @Severity(SeverityLevel.CRITICAL)
-    void checkUpdateExistingBookShouldReturn200() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields());
-        Book updated = book.toBuilder()
-                .title("Updated " + book.title())
+    void checkUpdateExistingBookShouldReturnOk() {
+        Book existingBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book updatedBook = existingBook.toBuilder()
+                .title("Updated " + existingBook.title())
                 .description("Updated description " + Instant.now())
-                .pageCount(book.pageCount() + 10)
+                .pageCount(existingBook.pageCount() + 10)
                 .excerpt("Updated excerpt " + Instant.now())
                 .publishDate(Instant.now().toString())
                 .build();
 
-        Response response = booksApi.spec()
-                .body(updated)
-                .when()
-                .put(BOOKS_PATH + "/" + book.id())
-                .then()
-                .extract()
-                .response();
+        Book updatedBookResponse = booksApi
+                .updateBook(existingBook.id(), updatedBook)
+                .verify()
+                .verifyStatusCodeOk()
+                .toResponse()
+                .asPojo(Book.class);
 
-        assertThat(response.statusCode())
-                .as("Updating an existing book should return 200 OK")
-                .isEqualTo(SC_OK);
-
-        Book updatedBook = response.as(Book.class);
-
-        assertThat(updatedBook.id()).isEqualTo(book.id());
-        assertThat(updatedBook.title()).isEqualTo(updated.title());
-        assertThat(updatedBook.description()).isEqualTo(updated.description());
-        assertThat(updatedBook.pageCount()).isEqualTo(updated.pageCount());
+        assertThat(updatedBookResponse.id()).isEqualTo(existingBook.id());
+        assertThat(updatedBookResponse.title()).isEqualTo(updatedBook.title());
+        assertThat(updatedBookResponse.description()).isEqualTo(updatedBook.description());
+        assertThat(updatedBookResponse.pageCount()).isEqualTo(updatedBook.pageCount());
     }
 
     @Test
     @Description("Verify updating a non-existent book returns 404 Not Found")
     @Severity(SeverityLevel.NORMAL)
-    void checkUpdateNonExistentBookShouldReturn404() {
-        Book update = TestDataManager.bookWithValidAllFields().toBuilder()
-                .id(999999)
+    void checkUpdateNonExistentBookShouldReturnNotFound() {
+        Book updatedBook = TestDataManager.bookWithValidAllFields().toBuilder()
+                .id(9999999)
                 .build();
 
-        Response response = booksApi.spec()
-                .body(update)
-                .when()
-                .put(BOOKS_PATH + "/" + update.id())
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 404 Not Found when updating a non-existent book")
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error should describe resource not found")
-                .isEqualTo("Not Found");
+        booksApi
+                .updateBook(updatedBook.id(), updatedBook)
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyStringJsonPath("title", "Not Found");
     }
 
     @Test
     @Description("Verify updating a book with null fields returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
-    void checkUpdateBookWithNullFieldsShouldReturn400() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields());
-        Book updated = book.toBuilder()
+    void checkUpdateBookWithNullFieldsShouldReturnBadRequest() {
+        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book updatedBook = book.toBuilder()
                 .title(null)
                 .description(null)
                 .excerpt(null)
                 .publishDate(null)
                 .build();
 
-        Response response = booksApi.spec()
-                .body(updated)
-                .when()
-                .put(BOOKS_PATH + "/" + book.id())
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Updating a book with null fields should return 400 Bad Request")
-                .isEqualTo(SC_BAD_REQUEST);
+        booksApi.updateBook(book.id(), updatedBook)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
     @Test
     @Description("Verify updating a book with empty strings returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
     void checkUpdateBookWithEmptyFieldsShouldReturn400() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields());
-        Book updated = book.toBuilder()
+        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book updatedBook = book.toBuilder()
                 .title("")
                 .description("")
                 .excerpt("")
                 .publishDate("")
                 .build();
 
-        Response response = booksApi.spec()
-                .body(updated)
-                .when()
-                .put(BOOKS_PATH + "/" + book.id())
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Updating a book with empty strings should return 400 Bad Request")
-                .isEqualTo(SC_BAD_REQUEST);
+        booksApi.updateBook(book.id(), updatedBook)
+                .verify()
+                .verifyStatusCodeBadRequest();
     }
 
     @Test
     @Description("Verify updating each single field one by one (title, description, pageCount, excerpt, publishDate)")
     @Severity(SeverityLevel.NORMAL)
     void checkUpdateBookSingleFieldsIndividually() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields());
+        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);;
 
         String[] fields = {"title", "description", "pageCount", "excerpt", "publishDate"};
         for (String field : fields) {
-            Book updated = switch (field) {
+            Book updatedBook = switch (field) {
                 case "title" -> book.toBuilder().title("Updated title " + Instant.now()).build();
                 case "description" -> book.toBuilder().description("Updated desc " + Instant.now()).build();
                 case "pageCount" -> book.toBuilder().pageCount(book.pageCount() + 5).build();
@@ -144,39 +111,25 @@ public class UpdateBooksTests extends BaseApiTest {
                 default -> throw new IllegalArgumentException("Unexpected field: " + field);
             };
 
-            Response response = booksApi.spec()
-                    .body(updated)
-                    .when()
-                    .put(BOOKS_PATH + "/" + book.id())
-                    .then()
-                    .extract()
-                    .response();
-
-            assertThat(response.statusCode())
-                    .as("Updating single field '%s' should return 200 OK", field)
-                    .isEqualTo(SC_OK);
+            booksApi.updateBook(book.id(), updatedBook)
+                    .verify()
+                    .verifyStatusCodeOk();
         }
     }
 
     @Test
     @Description("Verify updating a book without a request body returns 400 Bad Request")
     @Severity(SeverityLevel.CRITICAL)
-    void checkUpdateBookWithoutBodyShouldReturn400() {
+    void checkUpdateBookWithoutBodyShouldReturnBadRequest() {
         int bookId = 1;
 
-        Response response = booksApi.spec()
-                .when()
-                .put(BOOKS_PATH + "/" + bookId)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Updating without body should return 400 Bad Request")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.jsonPath().getString("errors.\"\"[0]"))
-                .as("Error message should mention missing body")
-                .contains("A non-empty request body is required.");
+        booksApi
+                .updateBook(bookId, null)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "One or more validation errors occurred.")
+                .verifyStringJsonPath("type", "https://tools.ietf.org/html/rfc7231#section-6.5.1")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 }

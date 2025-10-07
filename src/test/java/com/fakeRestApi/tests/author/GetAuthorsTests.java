@@ -1,16 +1,15 @@
 package com.fakeRestApi.tests.author;
 
 import com.fakeRestApi.models.Author;
+import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
 import io.qameta.allure.*;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.*;
 
-import static com.fakeRestApi.apiClient.AuthorsApi.AUTHORS_PATH;
 import static org.apache.http.HttpStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,7 +23,7 @@ public class GetAuthorsTests extends BaseApiTest {
 
     @BeforeAll
     void initAllAuthors() {
-        allAuthors = authorsApi.getAuthors();
+        allAuthors = authorsApi.getAuthors().asListOfPojo(Author.class);
         assertThat(allAuthors)
                 .as("Authors list should be fetched before tests")
                 .isNotNull()
@@ -35,7 +34,13 @@ public class GetAuthorsTests extends BaseApiTest {
     @Description("Verify GET /Authors returns non-empty list and all fields are valid")
     @Severity(SeverityLevel.CRITICAL)
     void checkGetAllAuthorsShouldReturnValidList() {
-        List<Author> authors = authorsApi.getAuthors();
+        List<Author> authors = authorsApi.getAuthors()
+                .verify()
+                .verifyStatusCodeOk()
+                .verifyPojoListNotEmpty(Book.class)
+                .validateJsonSchema("schemas/author.json")
+                .toResponse()
+                .asListOfPojo(Author.class);
 
         assertThat(authors)
                 .as("Authors list should not be empty")
@@ -53,7 +58,7 @@ public class GetAuthorsTests extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void checkGetAuthorByIdShouldReturnCorrectAuthor() {
         Author expectedAuthor = allAuthors.get(0);
-        Author actualAuthor = authorsApi.getAuthorById(expectedAuthor.id());
+        Author actualAuthor = authorsApi.getAuthorById(expectedAuthor.id()).asPojo(Author.class);
 
         assertThat(actualAuthor)
                 .as("Fetched author should not be null")
@@ -76,40 +81,30 @@ public class GetAuthorsTests extends BaseApiTest {
     @ValueSource(strings = {"abc", "!", "$", "ю", "null"})
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify GET /Authors/{id} returns 400 Bad Request for malformed IDs")
-    void checkGetAuthorWithInvalidIdShouldReturn400(String invalidId) {
-        Response response = authorsApi.spec()
-                .get(AUTHORS_PATH + "/" + invalidId)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Invalid IDs should result in 400 Bad Request")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error title should describe validation problem")
-                .containsIgnoringCase("validation");
+    void checkGetAuthorWithInvalidIdShouldReturnBadRequest(String invalidId) {
+        authorsApi.getAuthorById(invalidId)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "One or more validation errors occurred.")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST)
+                .verifyStringJsonPath("errors.id[0]", "The value '" + invalidId + "' is not valid.")
+                .verifyStringJsonPathIsNotBlank("traceId");
     }
 
     @ParameterizedTest(name = "GET /Authors/{0} → should return 404 Not Found")
     @ValueSource(strings = {"0", "-5", "999999"})
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify GET /Authors/{id} returns 404 Not Found for nonexistent IDs")
-    void checkGetAuthorWithNonexistentIdShouldReturn404(String id) {
-        Response response = authorsApi.spec()
-                .get(AUTHORS_PATH + "/" + id)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Nonexistent author should return 404")
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error message should indicate Not Found")
-                .isEqualTo("Not Found");
+    void checkGetAuthorWithNonexistentIdShouldReturnBadRequest(String invalidId) {
+        authorsApi.getAuthorById(invalidId)
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "Not Found")
+                .verifyStringJsonPath("type", "https://tools.ietf.org/html/rfc7231#section-6.5.4")
+                .verifyIntegerJsonPath("status", SC_NOT_FOUND)
+                .verifyStringJsonPathIsNotBlank("traceId");
     }
 
     @Test
@@ -130,9 +125,8 @@ public class GetAuthorsTests extends BaseApiTest {
     @Description("Verify GET /Authors/authors/books/{idBook} returns authors related to that book")
     @Severity(SeverityLevel.NORMAL)
     void checkGetAuthorsByBookIdShouldReturnRelatedAuthors() {
-        // Use a book ID from an existing author
         int bookId = allAuthors.get(0).idBook();
-        List<Author> authorsByBook = authorsApi.getAuthorsByBookId(bookId);
+        List<Author> authorsByBook = authorsApi.getAuthorsByBookId(bookId).asListOfPojo(Author.class);
 
         assertThat(authorsByBook)
                 .as("Authors list for book ID %s should not be empty", bookId)
@@ -144,34 +138,27 @@ public class GetAuthorsTests extends BaseApiTest {
     }
 
     @ParameterizedTest(name = "GET /Authors/authors/books/{0} → should return 404 for nonexistent book ID")
-    @ValueSource(strings = {"0", "-1", "999999"})
+    @ValueSource(strings = {"0", "-1", "9999999"})
     @Description("Verify GET /Authors/authors/books/{idBook} returns 404 for invalid or missing books")
     @Severity(SeverityLevel.NORMAL)
-    void checkGetAuthorsByNonexistentBookIdShouldReturn404(String invalidBookId) {
-        Response response = authorsApi.spec()
-                .get(AUTHORS_PATH + "/authors/books/" + invalidBookId)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 404 Not Found for nonexistent book ID")
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error title should describe Not Found condition")
-                .isEqualTo("Not Found");
+    void checkGetAuthorsByNonexistentBookIdShouldReturnBadRequest(String invalidBookId) {
+        authorsApi
+                .getAuthorsByBookId(invalidBookId)
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "Not Found");
     }
 
     @Test
     @Description("Verify author IDs are in sequential order")
     @Severity(SeverityLevel.MINOR)
     void checkAuthorsAreSortedByIdAscending() {
-        List<Integer> ids = allAuthors.stream().map(Author::id).toList();
-        List<Integer> sorted = new ArrayList<>(ids);
+        List<Integer> authorIds = allAuthors.stream().map(Author::id).toList();
+        List<Integer> sorted = new ArrayList<>(authorIds);
         Collections.sort(sorted);
 
-        assertThat(ids)
+        assertThat(authorIds)
                 .as("Authors should be sorted by ID ascending")
                 .containsExactlyElementsOf(sorted);
     }

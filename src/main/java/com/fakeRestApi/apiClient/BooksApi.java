@@ -1,13 +1,12 @@
 package com.fakeRestApi.apiClient;
 
 import com.fakeRestApi.models.Book;
+import com.fakeRestApi.utils.ResponseParser;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpStatus;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Slf4j
 public class BooksApi extends BaseApi {
@@ -17,49 +16,59 @@ public class BooksApi extends BaseApi {
     /**
      * GET /Books – Retrieve all books with schema validation and logs
      */
-    public List<Book> getBooks() {
+    public ResponseParser getBooks() {
         log.info("Sending GET request to {}.", BOOKS_PATH);
 
         Response response = spec()
                 .when()
                 .get(BOOKS_PATH)
                 .then()
-                .log().ifValidationFails()
-                .statusCode(HttpStatus.SC_OK)
                 .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/book.json"))
                 .extract()
                 .response();
 
         log.info("Received {} books.", response.jsonPath().getList("$").size());
 
-        return Arrays.asList(response.as(Book[].class));
+        return ResponseParser.of(response);
     }
 
     /**
      * GET /Books/{id}
      */
-    public Book getBookById(int id) {
+    public ResponseParser getBookById(int id) {
         log.info("Fetching book by ID: {}", id);
 
         Response response = spec()
-                .pathParam("id", id)
                 .when()
-                .get(BOOKS_PATH + "/{id}")
+                .get(BOOKS_PATH + "/" + id)
                 .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/singleBook.json"))
                 .extract()
                 .response();
 
         log.info("Book with ID {} retrieved successfully.", id);
 
-        return response.as(Book.class);
+        return ResponseParser.of(response);
+    }
+
+    public ResponseParser getBookById(String id) {
+        log.info("Fetching book by ID: {}", id);
+
+        Response response = spec()
+                .when()
+                .get(BOOKS_PATH + "/" + id)
+                .then()
+                .extract()
+                .response();
+
+        log.info("Book with ID {} retrieved successfully.", id);
+
+        return ResponseParser.of(response);
     }
 
     /**
      * POST /Books
      */
-    public Book createBook(Book book) {
+    public ResponseParser createBook(Book book) {
         log.info("Creating new book: {}.", book);
 
         Response response = spec()
@@ -67,48 +76,60 @@ public class BooksApi extends BaseApi {
                 .when()
                 .post(BOOKS_PATH)
                 .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/singleBook.json"))
                 .extract()
                 .response();
 
         Book createdBook = response.as(Book.class);
         log.info("Created book with ID {}.", createdBook.id());
-        return createdBook;
+        return ResponseParser.of(response);
     }
 
     /**
      * PUT /Books/{id}
      */
-    public Book updateBook(int id, Book updatedBook) {
+    public ResponseParser updateBook(int id, Book updatedBook) {
         log.info("Updating book with ID {}: {}", id, updatedBook);
 
-        Response response = spec()
-                .pathParam("id", id)
-                .body(updatedBook)
+        RequestSpecification reqSpec = spec()
+                .pathParam("id", id);
+
+        if (updatedBook != null) {
+            reqSpec.body(updatedBook);
+        }
+        Response response = reqSpec
                 .when()
                 .put(BOOKS_PATH + "/{id}")
                 .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/singleBook.json"))
                 .extract()
                 .response();
 
-        Book book = response.as(Book.class);
         log.info("Updated book ID {} successfully.", id);
-        return book;
+        return ResponseParser.of(response);
     }
 
-    public void deleteBook(int id) {
+    public ResponseParser deleteBook(int id) {
         log.info("Deleting book with ID {}.", id);
 
-        spec()
+        Response response = spec()
                 .pathParam("id", id)
                 .when()
-                .delete(BOOKS_PATH + "/{id}")
-                .then()
-                .statusCode(HttpStatus.SC_OK);
+                .delete(BOOKS_PATH + "/{id}");
 
         log.info("Deleted book ID {}.", id);
+
+        return ResponseParser.of(response);
+    }
+
+    public ResponseParser deleteBook(String id) {
+        log.info("Deleting book with ID {}.", id);
+
+        Response response = spec()
+                .pathParam("id", id)
+                .when()
+                .delete(BOOKS_PATH + "/{id}");
+
+        log.info("Deleted book ID {}.", id);
+
+        return ResponseParser.of(response);
     }
 }

@@ -3,7 +3,6 @@ package com.fakeRestApi.tests.author;
 import com.fakeRestApi.models.Author;
 import com.fakeRestApi.tests.BaseApiTest;
 import io.qameta.allure.*;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -11,7 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.Random;
 
-import static com.fakeRestApi.apiClient.AuthorsApi.AUTHORS_PATH;
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
@@ -32,7 +31,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Updated_" + author.lastName())
                 .build();
 
-        Author response = authorsApi.updateAuthor(author.id(), updated);
+        Author response = authorsApi.updateAuthor(author.id(), updated).asPojo(Author.class);
 
         assertThat(response)
                 .as("Response body should not be null")
@@ -57,21 +56,11 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Writer")
                 .build();
 
-        var response = authorsApi.spec()
-                .pathParam("id", missingId)
-                .body(ghost)
-                .when()
-                .put(AUTHORS_PATH + "/{id}")
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Should return 404 Not Found for non-existing author")
-                .isEqualTo(HttpStatus.SC_NOT_FOUND);
-
-        assertThat(response.jsonPath().getString("title"))
-                .isEqualTo("Not Found");
+        authorsApi
+                .updateAuthor(missingId, ghost)
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyStringJsonPath("title", "Not Found");
     }
 
     @ParameterizedTest
@@ -87,18 +76,10 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Valid")
                 .build();
 
-        var response = authorsApi.spec()
-                .pathParam("id", author.id())
-                .body(invalidAuthor)
-                .when()
-                .put(AUTHORS_PATH + "/{id}")
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Should return 400 when firstName is blank")
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+        authorsApi
+                .updateAuthor(author.id(), invalidAuthor)
+                .verify()
+                .verifyStatusCodeBadRequest();
     }
 
     @ParameterizedTest
@@ -114,18 +95,12 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName(invalid)
                 .build();
 
-        var response = authorsApi.spec()
-                .pathParam("id", author.id())
-                .body(invalidAuthor)
-                .when()
-                .put(AUTHORS_PATH + "/{id}")
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Should return 400 when lastName is blank")
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+        authorsApi
+                .updateAuthor(author.id(), invalidAuthor)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
     @Test
@@ -141,21 +116,12 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Case")
                 .build();
 
-        var response = authorsApi.spec()
-                .pathParam("id", author.id())
-                .body(mismatched)
-                .when()
-                .put(AUTHORS_PATH + "/{id}")
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("ID mismatch should result in 400 Bad Request")
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
-
-        assertThat(response.getContentType())
-                .contains("application/problem+json");
+        authorsApi
+                .updateAuthor(author.id(), mismatched)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
     @Test
@@ -170,46 +136,35 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Reference")
                 .build();
 
-        var response = authorsApi.spec()
-                .pathParam("id", author.id())
-                .body(invalidBookAuthor)
-                .when()
-                .put(AUTHORS_PATH + "/{id}")
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Invalid idBook reference should return 400 Bad Request")
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+        authorsApi
+                .updateAuthor(author.id(), invalidBookAuthor)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
     @Test
     @Description("PUT /Authors/{id} with non-numeric path should return 400")
     @Severity(SeverityLevel.NORMAL)
-    void shouldReturn400WhenPathIsNonNumeric() {
-        Author payload = Author.builder()
+    void checkShouldReturn400WhenPathIsNonNumeric() {
+        Author author = Author.builder()
                 .id(1)
                 .idBook(1)
                 .firstName("Bad")
                 .lastName("Path")
                 .build();
 
-        var response = authorsApi.spec()
-                .when()
-                .body(payload)
-                .put("/Authors/abc")
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Non-numeric path parameter should produce 400 Bad Request")
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+        authorsApi
+                .updateAuthor("abc", author)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
     private Author getExistingAuthor() {
-        List<Author> authors = authorsApi.getAuthors();
+        List<Author> authors = authorsApi.getAuthors().asListOfPojo(Author.class);
         assertThat(authors)
                 .as("At least one author should exist in system")
                 .isNotEmpty();

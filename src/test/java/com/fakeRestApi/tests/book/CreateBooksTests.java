@@ -10,9 +10,12 @@ import io.qameta.allure.Severity;
 import io.qameta.allure.Story;
 import io.qameta.allure.SeverityLevel;
 import io.restassured.response.Response;
+import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -21,46 +24,48 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static com.fakeRestApi.apiClient.BooksApi.BOOKS_PATH;
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
 @Feature("Books API")
 @Story("Create Books")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SoftAssertionsExtension.class)
 public class CreateBooksTests extends BaseApiTest {
 
     @Test
     @Description("Verify that a user can create a book with all required fields and they are correctly returned")
     @Severity(SeverityLevel.CRITICAL)
-    void checkUserCanCreateBookWithAllFields() {
+    void checkUserCanCreateBookWithAllFields(SoftAssertions softly) {
         Book book = TestDataManager.bookWithValidAllFields();
-        Book createdBook = booksApi.createBook(book);
+        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(createdBook)
+        softly.assertThat(createdBook)
                 .as("Created book object should not be null")
                 .isNotNull();
 
-        assertThat(createdBook.id())
+        softly.assertThat(createdBook.id())
                 .as("Book ID should be positive")
                 .isPositive();
 
-        assertThat(createdBook.title())
+        softly.assertThat(createdBook.title())
                 .as("Book title should match the sent title")
                 .isEqualTo(book.title());
 
-        assertThat(createdBook.description())
+        softly.assertThat(createdBook.description())
                 .as("Book description should match the sent description")
                 .isEqualTo(book.description());
 
-        assertThat(createdBook.pageCount())
+        softly.assertThat(createdBook.pageCount())
                 .as("Book page count should match the sent page count")
                 .isEqualTo(book.pageCount());
 
-        assertThat(createdBook.excerpt())
+        softly.assertThat(createdBook.excerpt())
                 .as("Book excerpt should match the sent excerpt")
                 .isEqualTo(book.excerpt());
 
-        assertThat(createdBook.publishDate())
+        softly.assertThat(createdBook.publishDate())
                 .as("Book publish date should not be blank and should match the format")
                 .isNotBlank()
                 .matches("^\\d{4}-\\d{2}-\\d{2}T.*$");
@@ -69,37 +74,37 @@ public class CreateBooksTests extends BaseApiTest {
     @Test
     @Description("Verify that creating a book with empty fields except 'publishDate' returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
-    void checkUserCanCreateBookWithEmptyFieldsExceptDate() {
+    void checkUserCanCreateBookWithEmptyFieldsExceptDate(SoftAssertions softly) {
         Book book = TestDataManager.bookWithEmptyFields().toBuilder()
                 .publishDate(Instant.now().toString())
                 .build();
-        Book createdBook = booksApi.createBook(book);
+        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(createdBook)
+        softly.assertThat(createdBook)
                 .as("Created book object should not be null")
                 .isNotNull();
 
-        assertThat(createdBook.id())
+        softly.assertThat(createdBook.id())
                 .as("Book ID should be zero")
                 .isZero();
 
-        assertThat(createdBook.title())
+        softly.assertThat(createdBook.title())
                 .as("Book title should match the sent title")
                 .isEqualTo(book.title());
 
-        assertThat(createdBook.description())
+        softly.assertThat(createdBook.description())
                 .as("Book description should match the sent description")
                 .isEqualTo(book.description());
 
-        assertThat(createdBook.pageCount())
+        softly.assertThat(createdBook.pageCount())
                 .as("Book page count should match the sent page count")
                 .isEqualTo(book.pageCount());
 
-        assertThat(createdBook.excerpt())
+        softly.assertThat(createdBook.excerpt())
                 .as("Book excerpt should match the sent excerpt")
                 .isEqualTo(book.excerpt());
 
-        assertThat(createdBook.publishDate())
+        softly.assertThat(createdBook.publishDate())
                 .as("Book publish date should not be blank and should match the format")
                 .isNotBlank()
                 .matches("^\\d{4}-\\d{2}-\\d{2}T.*$");
@@ -110,15 +115,14 @@ public class CreateBooksTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkUserCanCreateBookWithEmptyFields() {
         Book bookWithEmptyAllFields = TestDataManager.bookWithEmptyFields();
-        Response response = booksApi.spec()
-                .body(bookWithEmptyAllFields)
-                .when()
-                .post(BOOKS_PATH)
-                .then()
-                .extract()
-                .response();
 
-        assertBadRequestResponse(response, "$.publishDate");
+        booksApi.createBook(bookWithEmptyAllFields)
+                .verify()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "One or more validation errors occurred.")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST)
+                .verifyStringJsonPath("errors['$.publishDate'][0]", "The JSON value could not be converted to System.DateTime. Path: $.publishDate | LineNumber: 0 | BytePositionInLine:")
+                .verifyStringJsonPathIsNotBlank("traceId");
     }
 
     @Test
@@ -129,49 +133,47 @@ public class CreateBooksTests extends BaseApiTest {
                 .publishDate("")
                 .build();
 
-        Response response = booksApi.spec()
-                .body(bookWithEmptyPublishDate)
-                .when()
-                .post(BOOKS_PATH)
-                .then()
-                .extract()
-                .response();
-
-        assertBadRequestResponse(response, "$.publishDate");
+        booksApi.createBook(bookWithEmptyPublishDate)
+                .verify()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "One or more validation errors occurred.")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST)
+                .verifyStringJsonPath("errors['$.publishDate'][0]", "The JSON value could not be converted to System.DateTime. Path: $.publishDate | LineNumber: 0 | BytePositionInLine:")
+                .verifyStringJsonPathIsNotBlank("traceId");
     }
 
     @Test
     @Description("Verify that creating a book with empty fields returns sucess")
     @Severity(SeverityLevel.NORMAL)
-    void checkUserCanCreateBookWithNullFields() {
+    void checkUserCanCreateBookWithNullFields(SoftAssertions softly) {
         Book book = TestDataManager.bookWithNullFields();
-        Book createdBook = booksApi.createBook(book);
+        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(createdBook)
+        softly.assertThat(createdBook)
                 .as("Created book object should not be null")
                 .isNotNull();
 
-        assertThat(createdBook.id())
+        softly.assertThat(createdBook.id())
                 .as("Book ID should be zero")
                 .isZero();
 
-        assertThat(createdBook.title())
+        softly.assertThat(createdBook.title())
                 .as("Book title should match the sent title")
                 .isEqualTo(book.title());
 
-        assertThat(createdBook.description())
+        softly.assertThat(createdBook.description())
                 .as("Book description should match the sent description")
                 .isEqualTo(book.description());
 
-        assertThat(createdBook.pageCount())
+        softly.assertThat(createdBook.pageCount())
                 .as("Book page count should match zero")
                 .isEqualTo(0);
 
-        assertThat(createdBook.excerpt())
+        softly.assertThat(createdBook.excerpt())
                 .as("Book excerpt should match the sent excerpt")
                 .isEqualTo(book.excerpt());
 
-        assertThat(createdBook.publishDate())
+        softly.assertThat(createdBook.publishDate())
                 .as("Book publish date should not be blank and should match the format")
                 .isNotBlank()
                 .matches("^\\d{4}-\\d{2}-\\d{2}T.*$");
@@ -183,7 +185,7 @@ public class CreateBooksTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkCreateBookWithSingleField(String fieldName) {
         Book partialBook = TestDataManager.bookWithSingleField(fieldName);
-        Book createdBook = booksApi.createBook(partialBook);
+        Book createdBook = booksApi.createBook(partialBook).asPojo(Book.class);
 
         assertThat(createdBook)
                 .as("Created book response should not be null for field: %s", fieldName)
@@ -254,24 +256,24 @@ public class CreateBooksTests extends BaseApiTest {
     @Test
     @Description("Verify that creating a book with identical data twice is allowed and both return the same book data")
     @Severity(SeverityLevel.NORMAL)
-    void checkUserCanCreateBookWithSameDataTwice() {
+    void checkUserCanCreateBookWithSameDataTwice(SoftAssertions softly) {
         Book originalBook = TestDataManager.bookWithValidAllFields();
-        Book firstCreatedBook = booksApi.createBook(originalBook);
-        Book secondCreatedBook = booksApi.createBook(originalBook);
+        Book firstCreatedBook = booksApi.createBook(originalBook).asPojo(Book.class);
+        Book secondCreatedBook = booksApi.createBook(originalBook).asPojo(Book.class);
 
-        assertThat(firstCreatedBook)
+        softly.assertThat(firstCreatedBook)
                 .as("First created book should not be null")
                 .isNotNull();
 
-        assertThat(secondCreatedBook)
+        softly.assertThat(secondCreatedBook)
                 .as("Second created book should not be null")
                 .isNotNull();
 
-        assertThat(firstCreatedBook.id())
+        softly.assertThat(firstCreatedBook.id())
                 .as("API echoes back same ID for duplicate POST calls")
                 .isEqualTo(secondCreatedBook.id());
 
-        assertThat(firstCreatedBook)
+        softly.assertThat(firstCreatedBook)
                 .usingRecursiveComparison()
                 .ignoringFields("publishDate")
                 .as("Both created books should have identical content except publishDate")
@@ -281,25 +283,25 @@ public class CreateBooksTests extends BaseApiTest {
     @Test
     @Description("Create a book with numeric-only title and description")
     @Severity(SeverityLevel.NORMAL)
-    void checkCreateBookWithNumericStrings() {
+    void checkCreateBookWithNumericStrings(SoftAssertions softly) {
         Book book = TestDataManager.generateValidBookBuilder()
                 .title("1234567890")
                 .description("9876543210")
                 .build();
 
-        Book created = booksApi.createBook(book);
+        Book created = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(created)
+        softly.assertThat(created)
                 .as("Response should contain numeric title and description as-is")
                 .isNotNull();
-        assertThat(created.title()).isEqualTo("1234567890");
-        assertThat(created.description()).isEqualTo("9876543210");
+        softly.assertThat(created.title()).isEqualTo("1234567890");
+        softly.assertThat(created.description()).isEqualTo("9876543210");
     }
 
     @Test
     @Description("Create a book with special characters in all string fields")
     @Severity(SeverityLevel.NORMAL)
-    void checkCreateBookWithSpecialSymbols() {
+    void checkCreateBookWithSpecialSymbols(SoftAssertions softly) {
         String symbols = "!@#$%^&*()_+-={}[]:\";'<>?,./|\\`~";
         Book book = TestDataManager.generateValidBookBuilder()
                 .title(symbols)
@@ -307,18 +309,18 @@ public class CreateBooksTests extends BaseApiTest {
                 .excerpt(symbols)
                 .build();
 
-        Book created = booksApi.createBook(book);
+        Book created = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(created)
+        softly.assertThat(created)
                 .as("API should accept special symbols without sanitization errors")
                 .isNotNull();
-        assertThat(created.title()).containsAnyOf("@", "#", "$");
+        softly.assertThat(created.title()).containsAnyOf("@", "#", "$");
     }
 
     @Test
     @Description("Create a book with emoji and unicode characters")
     @Severity(SeverityLevel.MINOR)
-    void checkCreateBookWithEmojiAndUnicode() {
+    void checkCreateBookWithEmojiAndUnicode(SoftAssertions softly) {
         String emojiTitle = "The ☀️ Sun & The 🌙 Moon";
         String unicodeDescription = "Привіт 🌍 — こんにちは世界 — مرحبا بالعالم";
 
@@ -328,31 +330,31 @@ public class CreateBooksTests extends BaseApiTest {
                 .excerpt("🧪 test excerpt 🌟")
                 .build();
 
-        Book created = booksApi.createBook(book);
+        Book created = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(created)
+        softly.assertThat(created)
                 .as("API should correctly handle UTF-8 and emoji characters")
                 .isNotNull();
-        assertThat(created.title()).contains("☀️").contains("🌙");
-        assertThat(created.description()).contains("Привіт").contains("こんにちは");
+        softly.assertThat(created.title()).contains("☀️").contains("🌙");
+        softly.assertThat(created.description()).contains("Привіт").contains("こんにちは");
     }
 
     @Test
     @Description("Create a book with a title that includes mixed characters")
     @Severity(SeverityLevel.NORMAL)
-    void checkCreateBookWithMixedCharacters() {
+    void checkCreateBookWithMixedCharacters(SoftAssertions softly) {
         String mixed = "Book_№42_🔥_!@#_漢字";
         Book book = TestDataManager.generateValidBookBuilder()
                 .title(mixed)
                 .description("Test " + mixed)
                 .build();
 
-        Book created = booksApi.createBook(book);
+        Book created = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(created.title())
+        softly.assertThat(created.title())
                 .as("Title should retain mixed characters")
                 .isEqualTo(mixed);
-        assertThat(created.description())
+        softly.assertThat(created.description())
                 .contains("Test");
     }
 
@@ -378,7 +380,7 @@ public class CreateBooksTests extends BaseApiTest {
     @Test
     @Description("Verify that creating a book with a past publish date is allowed and the date is stored correctly")
     @Severity(SeverityLevel.NORMAL)
-    void checkCreateBookWithPastPublishDate() {
+    void checkCreateBookWithPastPublishDate(SoftAssertions softly) {
         Instant pastDate = LocalDateTime.now()
                 .minusYears(5)
                 .atZone(ZoneOffset.UTC)
@@ -388,33 +390,33 @@ public class CreateBooksTests extends BaseApiTest {
                 .publishDate(pastDate.toString())
                 .build();
 
-        Book createdBook = booksApi.createBook(book);
+        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
 
-        assertThat(createdBook)
+        softly.assertThat(createdBook)
                 .as("Created book object should not be null")
                 .isNotNull();
 
-        assertThat(createdBook.id())
+        softly.assertThat(createdBook.id())
                 .as("Book ID should be positive")
                 .isPositive();
 
-        assertThat(createdBook.title())
+        softly.assertThat(createdBook.title())
                 .as("Book title should match the sent title")
                 .isEqualTo(book.title());
 
-        assertThat(createdBook.description())
+        softly.assertThat(createdBook.description())
                 .as("Book description should match the sent description")
                 .isEqualTo(book.description());
 
-        assertThat(createdBook.pageCount())
+        softly.assertThat(createdBook.pageCount())
                 .as("Page count should match the sent value")
                 .isEqualTo(book.pageCount());
 
-        assertThat(createdBook.excerpt())
+        softly.assertThat(createdBook.excerpt())
                 .as("Excerpt should match the sent value")
                 .isEqualTo(book.excerpt());
 
-        assertThat(createdBook.publishDate())
+        softly.assertThat(createdBook.publishDate())
                 .as("Publish date should match the provided past date")
                 .startsWith(pastDate.toString().substring(0, 10));
     }

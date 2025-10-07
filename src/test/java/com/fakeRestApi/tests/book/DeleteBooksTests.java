@@ -5,7 +5,9 @@ import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
 import io.qameta.allure.*;
 import io.restassured.response.Response;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -17,39 +19,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Feature("Books API")
 @Story("Delete Books")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SoftAssertionsExtension.class)
 public class DeleteBooksTests extends BaseApiTest {
 
     @Test
     @Description("Verify that deleting an existing book returns 204 No Content and subsequent GET returns 404 Not Found")
     @Severity(SeverityLevel.CRITICAL)
     void checkDeleteExistingBookShouldReturnOkAndBookShouldBeGone() {
-        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields());
+        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
 
-        Response deleteResponse = booksApi.spec()
-                .when()
-                .delete(BOOKS_PATH + "/" + createdBook.id())
-                .then()
-                .extract()
-                .response();
+        booksApi
+                .deleteBook(createdBook.id())
+                .verify()
+                .verifyStatusCodeOk();
 
-        assertThat(deleteResponse.statusCode())
-                .as("Deleting existing book should return 200 OK")
-                .isEqualTo(SC_OK);
-
-        Response getResponse = booksApi.spec()
-                .when()
-                .get(BOOKS_PATH + "/" + createdBook.id())
-                .then()
-                .extract()
-                .response();
-
-        assertThat(getResponse.statusCode())
-                .as("Subsequent GET after DELETE should return 404 Not Found")
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(getResponse.jsonPath().getString("title"))
-                .as("Error title should describe 'Not Found'")
-                .isEqualTo("Not Found");
+        booksApi.getBookById(createdBook.id())
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyStringJsonPath("title", "Not Found");
     }
 
     @Test
@@ -58,45 +45,25 @@ public class DeleteBooksTests extends BaseApiTest {
     void checkDeleteNonexistentBookShouldReturnNotFound() {
         int nonexistentId = 88888888;
 
-        Response response = booksApi.spec()
-                .when()
-                .delete(BOOKS_PATH + "/" + nonexistentId)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 404 Not Found for deleting non-existent book")
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error should describe 'Not Found'")
-                .isEqualTo("Not Found");
-
-        assertThat(response.jsonPath().getString("type"))
-                .as("Type should reference RFC 7231 6.5.4")
-                .contains("7231#section-6.5.4");
+        booksApi
+                .deleteBook(nonexistentId)
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyStringJsonPath("title", "Not Found")
+                .verifyStringJsonPath("type", "https://tools.ietf.org/html/rfc7231#section-6.5.1");
     }
 
     @ParameterizedTest(name = "DELETE /Books/{0} should return 400 Bad Request")
     @ValueSource(strings = {"abc", "!", "ю", "$", "null"})
     @Description("Verify that invalid book IDs return 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
-    void checkDeleteInvalidBookIdShouldReturn400(String invalidId) {
-        Response response = booksApi.spec()
-                .when()
-                .delete(BOOKS_PATH + "/" + invalidId)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 400 Bad Request for invalid ID: %s", invalidId)
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error should mention validation issue")
-                .contains("validation");
+    void checkDeleteInvalidBookIdShouldReturnBadRequest(String invalidId) {
+        booksApi
+                .deleteBook(invalidId)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPathIsNotBlank("title");
     }
 
     @Test
@@ -113,42 +80,23 @@ public class DeleteBooksTests extends BaseApiTest {
         assertThat(response.statusCode())
                 .as("DELETE /Books (without ID) should be disallowed by API design")
                 .isEqualTo(SC_METHOD_NOT_ALLOWED);
-
-        assertThat(response.jsonPath().getString("title"))
-                .as("Error title should indicate method not allowed")
-                .containsIgnoringCase("method not allowed");
     }
 
     @Test
     @Description("Verify double deletion returns 404 for the second call")
     @Severity(SeverityLevel.NORMAL)
     void checkDeleteBookTwiceShouldReturnNotFoundSecondTime() {
-        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields());
+        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
 
-        Response firstDelete = booksApi.spec()
-                .when()
-                .delete(BOOKS_PATH + "/" + createdBook.id())
-                .then()
-                .extract()
-                .response();
+        booksApi
+                .deleteBook(createdBook.id())
+                .verify()
+                .verifyStatusCodeOk();
 
-        assertThat(firstDelete.statusCode())
-                .as("First DELETE should return 200 OK")
-                .isEqualTo(SC_OK);
-
-        Response secondDelete = booksApi.spec()
-                .when()
-                .delete(BOOKS_PATH + "/" + createdBook.id())
-                .then()
-                .extract()
-                .response();
-
-        assertThat(secondDelete.statusCode())
-                .as("Second DELETE on same ID should return 404 Not Found")
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(secondDelete.jsonPath().getString("title"))
-                .as("Error should indicate 'Not Found'")
-                .isEqualTo("Not Found");
+        booksApi
+                .deleteBook(createdBook.id())
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyStringJsonPath("title", "Not Found");
     }
 }

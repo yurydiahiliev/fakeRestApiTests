@@ -13,7 +13,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static com.fakeRestApi.apiClient.AuthorsApi.AUTHORS_PATH;
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
-import static org.apache.http.HttpStatus.SC_OK;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
@@ -27,7 +26,7 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void checkUserCanCreateAuthorWithAllFields() {
         Author author = TestDataManager.authorWithValidAllFields();
-        Author created = authorsApi.createAuthor(author);
+        Author created = authorsApi.createAuthor(author).asPojo(Author.class);
 
         assertThat(created)
                 .as("Created author object should not be null")
@@ -50,7 +49,7 @@ public class CreateAuthorsTests extends BaseApiTest {
                 .lastName("Doe")
                 .build();
 
-        Author created = authorsApi.createAuthor(author);
+        Author created = authorsApi.createAuthor(author).asPojo(Author.class);
 
         assertThat(created)
                 .as("Created author should not be null")
@@ -67,20 +66,13 @@ public class CreateAuthorsTests extends BaseApiTest {
     void checkCreateAuthorWithEmptyFieldsShouldReturnBadRequest() {
         Author author = TestDataManager.authorWithEmptyFields();
 
-        Response response = authorsApi.spec()
-                .body(author)
-                .when()
-                .post(AUTHORS_PATH)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 400 Bad Request for invalid empty fields")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        String title = response.jsonPath().getString("title");
-        assertThat(title).contains("validation");
+        authorsApi
+                .createAuthor(author)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST)
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPathIsNotBlank("title");
     }
 
     @Test
@@ -89,20 +81,13 @@ public class CreateAuthorsTests extends BaseApiTest {
     void checkCreateAuthorWithNullFieldsShouldReturnBadRequest() {
         Author author = TestDataManager.authorWithNullFields();
 
-        Response response = authorsApi.spec()
-                .body(author)
-                .when()
-                .post(AUTHORS_PATH)
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 400 Bad Request for null fields")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.jsonPath().getString("title"))
-                .contains("validation");
+        authorsApi
+                .createAuthor(author)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST)
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPathIsNotBlank("title");
     }
 
     @ParameterizedTest(name = "Create author with single field: {0}")
@@ -111,17 +96,12 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkCreateAuthorWithSingleField(String fieldName) {
         Author author = TestDataManager.authorWithSingleField(fieldName);
-        Response response = authorsApi.spec()
-                .body(author)
-                .when()
-                .post(AUTHORS_PATH)
-                .then()
-                .extract()
-                .response();
 
-        assertThat(response.statusCode())
-                .as("Creating with idBook only should fail with 400 Bad Request")
-                .isEqualTo(SC_OK);
+        authorsApi
+                .createAuthor(author)
+                .verify()
+                .verifyStatusCodeOk()
+                .verifyBodyEqualsToPojo(Author.class, author);
     }
 
     @Test
@@ -129,8 +109,8 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkCreateDuplicateAuthorIsAllowed() {
         Author author = TestDataManager.authorWithValidAllFields();
-        Author first = authorsApi.createAuthor(author);
-        Author second = authorsApi.createAuthor(author);
+        Author first = authorsApi.createAuthor(author).asPojo(Author.class);
+        Author second = authorsApi.createAuthor(author).asPojo(Author.class);
 
         assertThat(first)
                 .as("First created author should not be null")
@@ -155,7 +135,7 @@ public class CreateAuthorsTests extends BaseApiTest {
                 .lastName("O'Neill #42")
                 .build();
 
-        Author created = authorsApi.createAuthor(author);
+        Author created = authorsApi.createAuthor(author).asPojo(Author.class);
 
         assertThat(created.firstName()).contains("Jean-Luc");
         assertThat(created.lastName()).contains("#42");
@@ -164,7 +144,7 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Test
     @Description("Verify that POST /Authors without body returns 400 Bad Request")
     @Severity(SeverityLevel.CRITICAL)
-    void checkCreateAuthorWithoutBodyShouldReturn400() {
+    void checkCreateAuthorWithoutBodyShouldReturnBadRequest() {
         Response response = authorsApi.spec()
                 .when()
                 .post(AUTHORS_PATH)

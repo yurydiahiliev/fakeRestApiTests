@@ -4,7 +4,6 @@ import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
 import io.qameta.allure.*;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -14,7 +13,6 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.fakeRestApi.apiClient.BooksApi.BOOKS_PATH;
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +27,7 @@ public class GetBooksApiTests extends BaseApiTest {
 
     @BeforeAll
     void initAllBooks() {
-        allBooks = booksApi.getBooks();
+        allBooks = booksApi.getBooks().asListOfPojo(Book.class);
         assertThat(allBooks)
                 .as("Book list should not be empty before tests")
                 .isNotEmpty();
@@ -39,11 +37,16 @@ public class GetBooksApiTests extends BaseApiTest {
     @Description("Verify GET /Books returns non-empty list and valid fields")
     @Severity(SeverityLevel.CRITICAL)
     void checkGetAllBooksShouldReturnValidBooksList() {
-        List<Book> books = booksApi.getBooks();
+        List<Book> books = booksApi.getBooks()
+                .verify()
+                .verifyStatusCodeOk()
+                .verifyPojoListNotEmpty(Book.class)
+                .validateJsonSchema("schemas/book.json")
+                .toResponse()
+                .asListOfPojo(Book.class);
 
         assertThat(books)
                 .as("Book list should not be empty")
-                .isNotEmpty()
                 .allSatisfy(book -> {
                     assertThat(book.id())
                             .as("Book ID should be a positive integer")
@@ -77,8 +80,12 @@ public class GetBooksApiTests extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void checkGetBookByRandomIdShouldReturnValidBookById() {
         int randomIndex = new Random().nextInt(allBooks.size());
-        Book expectedBook = allBooks.get(randomIndex);
-        Book actualBook = booksApi.getBookById(expectedBook.id());
+        Book expectedBook = allBooks.get(randomIndex - 1);
+        Book actualBook = booksApi.getBookById(String.valueOf(randomIndex))
+                .verify()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo(Book.class);
 
         assertThat(actualBook)
                 .as("Book retrieved by ID should not be null")
@@ -110,40 +117,14 @@ public class GetBooksApiTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify GET /Books/{id} returns 400 Bad Request when ID is invalid")
     void checkGetBookWithInvalidIdShouldReturnBadRequest(String invalidId) {
-        Response response = booksApi.spec()
-                .get(BOOKS_PATH + "/" + invalidId) // simulate invalid IDs directly in path
-                .then()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 400 Bad Request for invalid ID '%s'", invalidId)
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.getContentType())
-                .as("Response for invalid ID '%s' should be problem+json", invalidId)
-                .contains("application/problem+json");
-
-        String title = response.jsonPath().getString("title");
-        Integer status = response.jsonPath().getInt("status");
-        String errorMessage = response.jsonPath().getString("errors.id[0]");
-        String traceId = response.jsonPath().getString("traceId");
-
-        assertThat(title)
-                .as("Title for invalid ID '%s' should describe validation failure", invalidId)
-                .isEqualTo("One or more validation errors occurred.");
-
-        assertThat(status)
-                .as("Status code field should equal 400 for invalid ID '%s'", invalidId)
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(errorMessage)
-                .as("Error message for invalid ID '%s' should mention invalid value", invalidId)
-                .contains("not valid");
-
-        assertThat(traceId)
-                .as("Trace ID should exist for error response (ID '%s')", invalidId)
-                .isNotBlank();
+        booksApi.getBookById(invalidId)
+                .verify()
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "One or more validation errors occurred.")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST)
+                .verifyStringJsonPath("errors.id[0]", "The value '" + invalidId + "' is not valid.")
+                .verifyStringJsonPathIsNotBlank("traceId");
     }
 
     @ParameterizedTest(name = "GET /Books/{0} should return 404 Not Found")
@@ -151,41 +132,14 @@ public class GetBooksApiTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify GET /Books/{id} returns 404 Not Found for nonexistent or invalid numeric IDs")
     void checkGetBookWithNonexistentIdShouldReturnNotFound(String invalidId) {
-        Response response = booksApi.spec()
-                .get(BOOKS_PATH + "/" + invalidId)
-                .then()
-                .log().ifValidationFails()
-                .extract()
-                .response();
-
-        assertThat(response.statusCode())
-                .as("Expected 404 Not Found for ID '%s'", invalidId)
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(response.getContentType())
-                .as("Response content type should be application/problem+json")
-                .contains("application/problem+json; charset=utf-8; v=1.0");
-
-        String type = response.jsonPath().getString("type");
-        String title = response.jsonPath().getString("title");
-        int status = response.jsonPath().getInt("status");
-        String traceId = response.jsonPath().getString("traceId");
-
-        assertThat(type)
-                .as("Error type should reference RFC 7231 for ID '%s'", invalidId)
-                .isEqualTo("https://tools.ietf.org/html/rfc7231#section-6.5.4");
-
-        assertThat(title)
-                .as("Title should describe 404 Not Found for ID '%s'", invalidId)
-                .isEqualTo("Not Found");
-
-        assertThat(status)
-                .as("Status field should equal 404 for ID '%s'", invalidId)
-                .isEqualTo(SC_NOT_FOUND);
-
-        assertThat(traceId)
-                .as("Trace ID should be present for 404 response (ID '%s')", invalidId)
-                .isNotBlank();
+        booksApi.getBookById(invalidId)
+                .verify()
+                .verifyStatusCodeNotFound()
+                .verifyContentType("application/problem+json")
+                .verifyStringJsonPath("title", "Not Found")
+                .verifyStringJsonPath("type", "https://tools.ietf.org/html/rfc7231#section-6.5.4")
+                .verifyIntegerJsonPath("status", SC_NOT_FOUND)
+                .verifyStringJsonPathIsNotBlank("traceId");
     }
 
     @Test
@@ -193,7 +147,7 @@ public class GetBooksApiTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkReturnedBookIdsAreUnique() {
         assertThat(allBooks)
-                .as("Book list must be initialized from previous test")
+                .as("Book list must be initialized from before fixture")
                 .isNotNull();
 
         Set<Integer> uniqueIds = new HashSet<>();
@@ -259,8 +213,8 @@ public class GetBooksApiTests extends BaseApiTest {
     @Description("GET /Books/{id} should return the correct book for an existing ID")
     @Severity(SeverityLevel.CRITICAL)
     void checkGetBookByIdShouldReturnValidBook() {
-        Book newBook = booksApi.createBook(TestDataManager.bookWithValidAllFields());
-        Book fetched = booksApi.getBookById(newBook.id());
+        Book newBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book fetched = booksApi.getBookById(String.valueOf(newBook.id())).asPojo(Book.class);
 
         assertThat(fetched).as("Fetched book should not be null").isNotNull();
         assertThat(fetched.id()).as("ID should match the requested ID").isEqualTo(newBook.id());
