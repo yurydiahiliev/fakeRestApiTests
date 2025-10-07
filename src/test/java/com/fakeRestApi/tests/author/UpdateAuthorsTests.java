@@ -42,7 +42,11 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Updated_" + author.lastName())
                 .build();
 
-        Author response = authorsApi.updateAuthor(author.id(), updated).asPojo();
+        Author response = authorsApi.updateAuthor(author.id(), updated).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleAuthor.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(response)
                 .as("Response body should not be null")

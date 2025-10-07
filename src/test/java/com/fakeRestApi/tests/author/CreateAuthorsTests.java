@@ -23,7 +23,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static com.fakeRestApi.apiClient.AuthorsApi.AUTHORS_PATH;
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
 @Feature("Authors API")
@@ -37,7 +36,12 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void checkUserCanCreateAuthorWithAllFields(SoftAssertions softly) {
         Author author = TestDataManager.authorWithValidAllFields();
-        Author created = authorsApi.createAuthor(author).asPojo();
+        Author created = authorsApi.createAuthor(author)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleAuthor.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created)
                 .as("Created author object should not be null")
@@ -60,7 +64,12 @@ public class CreateAuthorsTests extends BaseApiTest {
                 .lastName("Doe")
                 .build();
 
-        Author created = authorsApi.createAuthor(author).asPojo();
+        Author created = authorsApi.createAuthor(author)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleAuthor.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created)
                 .as("Created author should not be null")
@@ -120,8 +129,16 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkCreateDuplicateAuthorIsAllowed(SoftAssertions softly) {
         Author author = TestDataManager.authorWithValidAllFields();
-        Author first = authorsApi.createAuthor(author).asPojo();
-        Author second = authorsApi.createAuthor(author).asPojo();
+        Author first = authorsApi.createAuthor(author).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleAuthor.json")
+                .toResponse()
+                .asPojo();
+        Author second = authorsApi.createAuthor(author).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleAuthor.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(first)
                 .as("First created author should not be null")
@@ -146,7 +163,11 @@ public class CreateAuthorsTests extends BaseApiTest {
                 .lastName("O'Neill #42")
                 .build();
 
-        Author created = authorsApi.createAuthor(author).asPojo();
+        Author created = authorsApi.createAuthor(author).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleAuthor.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created.firstName()).contains("Jean-Luc");
         softly.assertThat(created.lastName()).contains("#42");
