@@ -13,6 +13,8 @@ public class TestDataManager {
 
     private static final Faker faker = new Faker();
 
+    /* ----------------------------- BOOKS ----------------------------- */
+
     public static Book.BookBuilder generateValidBookBuilder() {
         int randomId = ThreadLocalRandom.current().nextInt(1, 9999);
         return Book.builder()

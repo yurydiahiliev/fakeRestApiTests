@@ -65,12 +65,7 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Description("Verify that creating an author with empty fields returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
     void checkCreateAuthorWithEmptyFieldsShouldReturnBadRequest() {
-        Author author = Author.builder()
-                .id(0)
-                .idBook(0)
-                .firstName("")
-                .lastName("")
-                .build();
+        Author author = TestDataManager.authorWithEmptyFields();
 
         Response response = authorsApi.spec()
                 .body(author)
@@ -92,12 +87,7 @@ public class CreateAuthorsTests extends BaseApiTest {
     @Description("Verify that creating an author with null fields returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
     void checkCreateAuthorWithNullFieldsShouldReturnBadRequest() {
-        Author author = Author.builder()
-                .id(null)
-                .idBook(null)
-                .firstName(null)
-                .lastName(null)
-                .build();
+        Author author = TestDataManager.authorWithNullFields();
 
         Response response = authorsApi.spec()
                 .body(author)

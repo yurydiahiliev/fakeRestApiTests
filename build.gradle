@@ -56,7 +56,7 @@ allure {
 test {
     useJUnitPlatform()
 
-    def effectiveLogLevel = System.getProperty("log.level", "DEBUG")
+    def effectiveLogLevel = System.getProperty("log.level", "INFO")
     systemProperty "log.level", effectiveLogLevel
     println "Using log.level = ${effectiveLogLevel}"
 

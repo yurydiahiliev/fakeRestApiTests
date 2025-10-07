@@ -31,8 +31,7 @@ public class ConfigHandler {
     }
 
     public static String getLogLevel() {
-        return System.getProperty("log.level",
-                PROPERTIES.getProperty("log.level", "INFO"));
+        return System.getProperty("log.level", PROPERTIES.getProperty("log.level", "INFO"));
     }
 
     private static String getProperty(String key) {
