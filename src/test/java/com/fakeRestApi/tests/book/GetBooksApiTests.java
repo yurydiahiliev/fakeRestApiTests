@@ -1,6 +1,8 @@
 package com.fakeRestApi.tests.book;
 
 import com.fakeRestApi.models.Book;
+import com.fakeRestApi.tests.BaseApiTest;
+import com.fakeRestApi.utils.TestDataManager;
 import io.qameta.allure.*;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
@@ -251,5 +253,17 @@ public class GetBooksApiTests extends BaseApiTest {
         assertThat(isChronologicallyDecreasing)
                 .as("Each next book's publishDate should be earlier than the previous one (descending order)")
                 .isTrue();
+    }
+
+    @Test
+    @Description("GET /Books/{id} should return the correct book for an existing ID")
+    @Severity(SeverityLevel.CRITICAL)
+    void checkGetBookByIdShouldReturnValidBook() {
+        Book newBook = booksApi.createBook(TestDataManager.bookWithValidAllFields());
+        Book fetched = booksApi.getBookById(newBook.id());
+
+        assertThat(fetched).as("Fetched book should not be null").isNotNull();
+        assertThat(fetched.id()).as("ID should match the requested ID").isEqualTo(newBook.id());
+        assertThat(fetched.title()).as("Title should match the original one").isEqualTo(newBook.title());
     }
 }

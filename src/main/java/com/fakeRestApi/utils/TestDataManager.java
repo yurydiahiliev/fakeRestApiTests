@@ -1,5 +1,6 @@
 package com.fakeRestApi.utils;
 
+import com.fakeRestApi.models.Author;
 import com.fakeRestApi.models.Book;
 import com.github.javafaker.Faker;
 import lombok.experimental.UtilityClass;
@@ -62,5 +63,61 @@ public class TestDataManager {
             case "publishdate" -> new Book(null, null, null, null, null, randomDate);
             default -> throw new IllegalArgumentException("Unknown field name: " + fieldName);
         };
+    }
+
+    /* ----------------------------- AUTHORS ----------------------------- */
+
+    public static Author.AuthorBuilder generateValidAuthorBuilder() {
+        int randomId = ThreadLocalRandom.current().nextInt(1, 9999);
+        int randomBookId = ThreadLocalRandom.current().nextInt(1, 100);
+        return Author.builder()
+                .id(randomId)
+                .idBook(randomBookId)
+                .firstName(faker.name().firstName())
+                .lastName(faker.name().lastName());
+    }
+
+    public static Author authorWithValidAllFields() {
+        return generateValidAuthorBuilder().build();
+    }
+
+    public static Author authorWithEmptyFields() {
+        return Author.builder()
+                .id(0)
+                .idBook(0)
+                .firstName("")
+                .lastName("")
+                .build();
+    }
+
+    public static Author authorWithNullFields() {
+        return Author.builder()
+                .id(null)
+                .idBook(null)
+                .firstName(null)
+                .lastName(null)
+                .build();
+    }
+
+    public static Author authorWithSingleField(String fieldName) {
+        int randomId = ThreadLocalRandom.current().nextInt(1, 9999);
+        int randomBookId = ThreadLocalRandom.current().nextInt(1, 100);
+
+        return switch (fieldName.toLowerCase()) {
+            case "id" -> Author.builder().id(randomId).build();
+            case "idbook" -> Author.builder().idBook(randomBookId).build();
+            case "firstname" -> Author.builder().firstName(faker.name().firstName()).build();
+            case "lastname" -> Author.builder().lastName(faker.name().lastName()).build();
+            default -> throw new IllegalArgumentException("Unknown field name: " + fieldName);
+        };
+    }
+
+    public static Author authorWithValidFields() {
+        return Author.builder()
+                .id(89)
+                .idBook(10)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.fakeRestApi.tests.book;
 
 import com.fakeRestApi.models.Book;
+import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -16,9 +17,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static com.fakeRestApi.apiClient.BooksApi.BOOKS_PATH;
-import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
@@ -116,39 +118,7 @@ public class CreateBooksTests extends BaseApiTest {
                 .extract()
                 .response();
 
-        assertThat(response.statusCode())
-                .as("Expected 400 Bad Request for invalid publishDate")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.getContentType())
-                .as("Response should use RFC 7807 problem JSON format")
-                .contains("application/problem+json");
-
-        String title = response.jsonPath().getString("title");
-        Integer status = response.jsonPath().getInt("status");
-        String type = response.jsonPath().getString("type");
-        String traceId = response.jsonPath().getString("traceId");
-        String errorMsg = response.jsonPath().getString("errors.'$.publishDate'[0]");
-
-        assertThat(title)
-                .as("Title should describe validation failure")
-                .isEqualTo("One or more validation errors occurred.");
-
-        assertThat(status)
-                .as("Status field in body should match HTTP status code 400")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(type)
-                .as("Error type should reference RFC 7231 6.5.1 section")
-                .contains("https://tools.ietf.org/html/rfc7231#section-6.5.1");
-
-        assertThat(errorMsg)
-                .as("Error message should mention publishDate conversion issue")
-                .contains("could not be converted to System.DateTime");
-
-        assertThat(traceId)
-                .as("Trace ID should be present for request tracking")
-                .isNotBlank();
+        assertBadRequestResponse(response, "$.publishDate");
     }
 
     @Test
@@ -167,39 +137,7 @@ public class CreateBooksTests extends BaseApiTest {
                 .extract()
                 .response();
 
-        assertThat(response.statusCode())
-                .as("Expected 400 Bad Request for invalid publishDate")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(response.getContentType())
-                .as("Response should use RFC 7807 problem JSON format")
-                .contains("application/problem+json");
-
-        String title = response.jsonPath().getString("title");
-        Integer status = response.jsonPath().getInt("status");
-        String type = response.jsonPath().getString("type");
-        String traceId = response.jsonPath().getString("traceId");
-        String errorMsg = response.jsonPath().getString("errors.'$.publishDate'[0]");
-
-        assertThat(title)
-                .as("Title should describe validation failure")
-                .isEqualTo("One or more validation errors occurred.");
-
-        assertThat(status)
-                .as("Status field in body should match HTTP status code 400")
-                .isEqualTo(SC_BAD_REQUEST);
-
-        assertThat(type)
-                .as("Error type should reference RFC 7231 6.5.1 section")
-                .contains("https://tools.ietf.org/html/rfc7231#section-6.5.1");
-
-        assertThat(errorMsg)
-                .as("Error message should mention publishDate conversion issue")
-                .contains("could not be converted to System.DateTime");
-
-        assertThat(traceId)
-                .as("Trace ID should be present for request tracking")
-                .isNotBlank();
+        assertBadRequestResponse(response, "$.publishDate");
     }
 
     @Test
@@ -335,8 +273,149 @@ public class CreateBooksTests extends BaseApiTest {
 
         assertThat(firstCreatedBook)
                 .usingRecursiveComparison()
-                .ignoringFields("publishDate") // publishDate might differ slightly
+                .ignoringFields("publishDate")
                 .as("Both created books should have identical content except publishDate")
                 .isEqualTo(secondCreatedBook);
+    }
+
+    @Test
+    @Description("Create a book with numeric-only title and description")
+    @Severity(SeverityLevel.NORMAL)
+    void checkCreateBookWithNumericStrings() {
+        Book book = TestDataManager.generateValidBookBuilder()
+                .title("1234567890")
+                .description("9876543210")
+                .build();
+
+        Book created = booksApi.createBook(book);
+
+        assertThat(created)
+                .as("Response should contain numeric title and description as-is")
+                .isNotNull();
+        assertThat(created.title()).isEqualTo("1234567890");
+        assertThat(created.description()).isEqualTo("9876543210");
+    }
+
+    @Test
+    @Description("Create a book with special characters in all string fields")
+    @Severity(SeverityLevel.NORMAL)
+    void checkCreateBookWithSpecialSymbols() {
+        String symbols = "!@#$%^&*()_+-={}[]:\";'<>?,./|\\`~";
+        Book book = TestDataManager.generateValidBookBuilder()
+                .title(symbols)
+                .description(symbols)
+                .excerpt(symbols)
+                .build();
+
+        Book created = booksApi.createBook(book);
+
+        assertThat(created)
+                .as("API should accept special symbols without sanitization errors")
+                .isNotNull();
+        assertThat(created.title()).containsAnyOf("@", "#", "$");
+    }
+
+    @Test
+    @Description("Create a book with emoji and unicode characters")
+    @Severity(SeverityLevel.MINOR)
+    void checkCreateBookWithEmojiAndUnicode() {
+        String emojiTitle = "The ☀️ Sun & The 🌙 Moon";
+        String unicodeDescription = "Привіт 🌍 — こんにちは世界 — مرحبا بالعالم";
+
+        Book book = TestDataManager.generateValidBookBuilder()
+                .title(emojiTitle)
+                .description(unicodeDescription)
+                .excerpt("🧪 test excerpt 🌟")
+                .build();
+
+        Book created = booksApi.createBook(book);
+
+        assertThat(created)
+                .as("API should correctly handle UTF-8 and emoji characters")
+                .isNotNull();
+        assertThat(created.title()).contains("☀️").contains("🌙");
+        assertThat(created.description()).contains("Привіт").contains("こんにちは");
+    }
+
+    @Test
+    @Description("Create a book with a title that includes mixed characters")
+    @Severity(SeverityLevel.NORMAL)
+    void checkCreateBookWithMixedCharacters() {
+        String mixed = "Book_№42_🔥_!@#_漢字";
+        Book book = TestDataManager.generateValidBookBuilder()
+                .title(mixed)
+                .description("Test " + mixed)
+                .build();
+
+        Book created = booksApi.createBook(book);
+
+        assertThat(created.title())
+                .as("Title should retain mixed characters")
+                .isEqualTo(mixed);
+        assertThat(created.description())
+                .contains("Test");
+    }
+
+    @Test
+    @Description("Verify that sending POST /Books without a request body returns 400 Bad Request")
+    @Severity(SeverityLevel.CRITICAL)
+    void checkCreateBookWithoutBodyShouldReturnBadRequest() {
+        Response response = booksApi.spec()
+                .when()
+                .post(BOOKS_PATH)
+                .then()
+                .extract()
+                .response();
+
+        assertBadRequestResponse(response, "");
+
+        String errorMessage = response.jsonPath().getString("errors.\"\"[0]");
+        assertThat(errorMessage)
+                .as("Error message should specify that the request body is missing")
+                .isEqualTo("A non-empty request body is required.");
+    }
+
+    @Test
+    @Description("Verify that creating a book with a past publish date is allowed and the date is stored correctly")
+    @Severity(SeverityLevel.NORMAL)
+    void checkCreateBookWithPastPublishDate() {
+        Instant pastDate = LocalDateTime.now()
+                .minusYears(5)
+                .atZone(ZoneOffset.UTC)
+                .toInstant();
+
+        Book book = TestDataManager.generateValidBookBuilder()
+                .publishDate(pastDate.toString())
+                .build();
+
+        Book createdBook = booksApi.createBook(book);
+
+        assertThat(createdBook)
+                .as("Created book object should not be null")
+                .isNotNull();
+
+        assertThat(createdBook.id())
+                .as("Book ID should be positive")
+                .isPositive();
+
+        assertThat(createdBook.title())
+                .as("Book title should match the sent title")
+                .isEqualTo(book.title());
+
+        assertThat(createdBook.description())
+                .as("Book description should match the sent description")
+                .isEqualTo(book.description());
+
+        assertThat(createdBook.pageCount())
+                .as("Page count should match the sent value")
+                .isEqualTo(book.pageCount());
+
+        assertThat(createdBook.excerpt())
+                .as("Excerpt should match the sent value")
+                .isEqualTo(book.excerpt());
+
+        assertThat(createdBook.publishDate())
+                .as("Publish date should match the provided past date")
+                .startsWith(pastDate.toString().substring(0, 10));
     }
 }

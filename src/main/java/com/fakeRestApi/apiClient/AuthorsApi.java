@@ -12,7 +12,7 @@ import java.util.List;
 @Slf4j
 public class AuthorsApi extends BaseApi {
 
-    private static final String AUTHORS_PATH = "/Authors";
+    public static final String AUTHORS_PATH = "/Authors";
     private static final String AUTHORS_BY_BOOK_PATH = AUTHORS_PATH + "/authors/books/{idBook}";
 
     /**
@@ -34,6 +34,28 @@ public class AuthorsApi extends BaseApi {
         log.info("Received {} authors.", response.jsonPath().getList("$").size());
 
         return Arrays.asList(response.as(Author[].class));
+    }
+
+    /**
+     * GET /Authors/{id} — Retrieve a specific author by ID
+     */
+    public Author getAuthorById(int id) {
+        log.info("Fetching author with ID {}", id);
+
+        Response response = spec()
+                .pathParam("id", id)
+                .when()
+                .get(AUTHORS_PATH + "/{id}")
+                .then()
+                .log().ifValidationFails()
+                .statusCode(HttpStatus.SC_OK)
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/singleAuthor.json"))
+                .extract()
+                .response();
+
+        Author author = response.as(Author.class);
+        log.info("Fetched author: {}", author);
+        return author;
     }
 
     /**
