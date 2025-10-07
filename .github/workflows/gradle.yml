@@ -36,10 +36,7 @@ jobs:
           java -version
 
       - name: Run Tests
-        run: set +e
-          ./gradlew clean test --no-daemon --console=plain --warning-mode=none --quiet
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          set -e
+        run: ./gradlew clean test --no-daemon --console=plain --warning-mode=none --quiet
         env:
           LOG_LEVEL: INFO
         continue-on-error: true
