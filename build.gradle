@@ -24,7 +24,7 @@ dependencies {
 
     implementation "io.qameta.allure:allure-junit5:2.29.0"
     implementation "io.qameta.allure:allure-rest-assured:2.29.0"
-    implementation("com.github.javafaker:javafaker:1.0.2")
+    implementation "com.github.javafaker:javafaker:1.0.2"
 
     implementation "org.slf4j:slf4j-api:2.0.13"
     runtimeOnly "org.apache.logging.log4j:log4j-core:2.24.0"
@@ -36,7 +36,7 @@ dependencies {
     testAnnotationProcessor "org.projectlombok:lombok:1.18.32"
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.11.3"
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.3")
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.11.3"
     testImplementation "org.assertj:assertj-core:3.27.3"
 }
 
@@ -50,6 +50,9 @@ allure {
         }
         autoconfigureListeners = true
         aspectjWeaver = true
+    }
+    report {
+        outputDir = file("$buildDir/reports/allure-report")
     }
 }
 
@@ -66,6 +69,8 @@ test {
         showStandardStreams = true
         exceptionFormat 'full'
     }
+
+    finalizedBy.clear()
 }
 
 tasks.register('all') {
