@@ -1,6 +1,6 @@
 # Fake REST API Tests
 
-![Build Status](https://github.com/yurydiahiliev/fakeRestApiTests/actions/workflows/gradle.yml/badge.svg)](https://github.com/yurydiahiliev/fakeRestApiTests/actions/workflows/gradle.yml)
+[![Build Status](https://github.com/yurydiahiliev/fakeRestApiTests/actions/workflows/gradle.yml/badge.svg)](https://github.com/yurydiahiliev/fakeRestApiTests/actions/workflows/gradle.yml)
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Gradle](https://img.shields.io/badge/Gradle-8.10-green)
 [![Allure Report](https://img.shields.io/badge/Allure-Report-blue)](https://yurydiahiliev.github.io/fakeRestApiTests/)
