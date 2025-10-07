@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.time.Instant;
 
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
 @Feature("Books API")

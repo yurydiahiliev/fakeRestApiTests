@@ -33,7 +33,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Test
     @Description("Verify PUT /Authors/{id} updates an existing author successfully")
     @Severity(SeverityLevel.CRITICAL)
-    void shouldUpdateExistingAuthor(SoftAssertions softly) {
+    void checkShouldUpdateExistingAuthor(SoftAssertions softly) {
         Author author = getFirstExistingAuthor();
         Author updated = Author.builder()
                 .id(author.id())
@@ -61,7 +61,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Test
     @Description("PUT /Authors/{id} should return 404 when author does not exist")
     @Severity(SeverityLevel.NORMAL)
-    void shouldReturn404WhenUpdatingNonExistingAuthor() {
+    void checkShouldReturn404WhenUpdatingNonExistingAuthor() {
         int missingId = getNonExistingId();
 
         Author ghost = Author.builder()
