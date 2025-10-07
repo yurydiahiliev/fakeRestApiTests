@@ -69,7 +69,9 @@ test {
         exceptionFormat 'full'
     }
 
-    finalizedBy.clear()
+    doLast {
+        tasks.findByName("allureReport")?.mustRunAfter("test")
+    }
 }
 
 tasks.register('all') {
