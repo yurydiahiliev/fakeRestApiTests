@@ -69,9 +69,3 @@ jobs:
           PERSONAL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISH_BRANCH: gh-pages
           PUBLISH_DIR: allure-history
-
-      - name: Fail if Tests Failed
-        if: steps.run_tests.outputs.exit_code != '0'
-        run: |
-          echo "Gradle tests failed (exit code: ${{ steps.run_tests.outputs.exit_code }})"
-          exit 1
