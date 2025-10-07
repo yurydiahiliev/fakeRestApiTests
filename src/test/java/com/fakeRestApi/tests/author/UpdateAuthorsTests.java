@@ -34,7 +34,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Description("Verify PUT /Authors/{id} updates an existing author successfully")
     @Severity(SeverityLevel.CRITICAL)
     void shouldUpdateExistingAuthor(SoftAssertions softly) {
-        Author author = getExistingAuthor();
+        Author author = getFirstExistingAuthor();
         Author updated = Author.builder()
                 .id(author.id())
                 .idBook(author.idBook())
@@ -83,7 +83,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Description("PUT /Authors/{id} should return 400 when firstName is blank")
     @Severity(SeverityLevel.MINOR)
     void checkShouldReturnBadRequestWhenFirstNameBlank(String invalid) {
-        Author author = getExistingAuthor();
+        Author author = getFirstExistingAuthor();
         Author invalidAuthor = Author.builder()
                 .id(author.id())
                 .idBook(author.idBook())
@@ -102,7 +102,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Description("PUT /Authors/{id} should return 400 when lastName is blank")
     @Severity(SeverityLevel.MINOR)
     void checkShouldReturnBadRequestWhenLastNameBlank(String invalid) {
-        Author author = getExistingAuthor();
+        Author author = getFirstExistingAuthor();
         Author invalidAuthor = Author.builder()
                 .id(author.id())
                 .idBook(author.idBook())
@@ -122,7 +122,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Description("PUT /Authors/{id} should return 400 when body ID mismatches path ID")
     @Severity(SeverityLevel.NORMAL)
     void checkShouldReturnBadRequestOnIdMismatch() {
-        Author author = getExistingAuthor();
+        Author author = getFirstExistingAuthor();
 
         Author mismatched = Author.builder()
                 .id(author.id() + 100)
@@ -143,7 +143,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     @Description("PUT /Authors/{id} should return 400 when idBook = 0 (invalid reference)")
     @Severity(SeverityLevel.NORMAL)
     void checkShouldReturnBadRequestWhenIdBookInvalid() {
-        Author author = getExistingAuthor();
+        Author author = getFirstExistingAuthor();
         Author invalidBookAuthor = Author.builder()
                 .id(author.id())
                 .idBook(0)
@@ -178,7 +178,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
-    private Author getExistingAuthor() {
+    private Author getFirstExistingAuthor() {
         List<Author> authors = authorsApi.getAuthors().asListOfPojo();
         assertThat(authors)
                 .as("At least one author should exist in system")
