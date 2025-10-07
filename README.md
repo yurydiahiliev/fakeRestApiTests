@@ -111,13 +111,38 @@ git clone https://github.com/yurydiahiliev/fakeRestApiTests.git
 cd fakeRestApiTests
 ```
 
-### 2. Verify environment
+### 2. Install Gradle (if not already available)
+> 💡 This project already includes a Gradle Wrapper (`gradlew`), so you normally **don’t need to install Gradle manually** — just run `./gradlew` (macOS/Linux) or `gradlew.bat` (Windows).  
+> But if you want to install Gradle globally, follow these optional steps:
+
+#### macOS
+```bash
+brew install gradle
+gradle -v
+```
+*If Homebrew is not installed:*
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+#### Windows
+1. Download the Gradle binary ZIP from [https://gradle.org/releases](https://gradle.org/releases)
+2. Extract it to a location like `C:\Gradle\gradle-8.10`
+3. Add to environment variables:
+  - `GRADLE_HOME=C:\Gradle\gradle-8.10`
+  - Add `%GRADLE_HOME%\bin` to `Path`
+4. Verify installation:
+   ```bash
+   gradle -v
+   ```
+
+### 3. Verify environment
 ```bash
 ./gradlew -v
 java -version
 ```
 
-### 3. Run full flow (tests + Allure report)
+### 4. Run full flow (tests + Allure report)
 ```bash
 ./gradlew all
 ```
