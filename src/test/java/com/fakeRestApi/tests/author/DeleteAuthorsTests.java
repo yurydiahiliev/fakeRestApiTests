@@ -3,14 +3,21 @@ package com.fakeRestApi.tests.author;
 import com.fakeRestApi.models.Author;
 import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
-import io.qameta.allure.*;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
 import io.restassured.response.Response;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.fakeRestApi.apiClient.AuthorsApi.AUTHORS_PATH;
-import static org.apache.http.HttpStatus.*;
+import static org.apache.http.HttpStatus.SC_METHOD_NOT_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
@@ -25,7 +32,7 @@ public class DeleteAuthorsTests extends BaseApiTest {
     void checkDeleteExistingAuthorShouldReturnOkAndAuthorShouldBeGone() {
         Author createdAuthor = authorsApi
                 .createAuthor(TestDataManager.authorWithValidFields())
-                .asPojo(Author.class);
+                .asPojo();
 
         authorsApi
                 .deleteAuthor(createdAuthor.id())
@@ -88,7 +95,7 @@ public class DeleteAuthorsTests extends BaseApiTest {
     void checkDeleteAuthorTwiceShouldReturnNotFoundSecondTime() {
         Author createdAuthor = authorsApi
                 .createAuthor(TestDataManager.authorWithValidFields())
-                .asPojo(Author.class);
+                .asPojo();
 
         authorsApi
                 .deleteAuthor(createdAuthor.id())

@@ -3,8 +3,18 @@ package com.fakeRestApi.tests.book;
 import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
-import io.qameta.allure.*;
-import org.junit.jupiter.api.*;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
+import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.time.Instant;
 
@@ -15,13 +25,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Feature("Books API")
 @Story("Update Books")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SoftAssertionsExtension.class)
 public class UpdateBooksTests extends BaseApiTest {
 
     @Test
     @Description("Verify updating an existing book successfully changes its fields and returns 200 OK")
     @Severity(SeverityLevel.CRITICAL)
-    void checkUpdateExistingBookShouldReturnOk() {
-        Book existingBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+    void checkUpdateExistingBookShouldReturnOk(SoftAssertions softly) {
+        Book existingBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
         Book updatedBook = existingBook.toBuilder()
                 .title("Updated " + existingBook.title())
                 .description("Updated description " + Instant.now())
@@ -34,13 +49,14 @@ public class UpdateBooksTests extends BaseApiTest {
                 .updateBook(existingBook.id(), updatedBook)
                 .verify()
                 .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
                 .toResponse()
-                .asPojo(Book.class);
+                .asPojo();
 
-        assertThat(updatedBookResponse.id()).isEqualTo(existingBook.id());
-        assertThat(updatedBookResponse.title()).isEqualTo(updatedBook.title());
-        assertThat(updatedBookResponse.description()).isEqualTo(updatedBook.description());
-        assertThat(updatedBookResponse.pageCount()).isEqualTo(updatedBook.pageCount());
+        softly.assertThat(updatedBookResponse.id()).isEqualTo(existingBook.id());
+        softly.assertThat(updatedBookResponse.title()).isEqualTo(updatedBook.title());
+        softly.assertThat(updatedBookResponse.description()).isEqualTo(updatedBook.description());
+        softly.assertThat(updatedBookResponse.pageCount()).isEqualTo(updatedBook.pageCount());
     }
 
     @Test
@@ -62,7 +78,7 @@ public class UpdateBooksTests extends BaseApiTest {
     @Description("Verify updating a book with null fields returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
     void checkUpdateBookWithNullFieldsShouldReturnBadRequest() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo();
         Book updatedBook = book.toBuilder()
                 .title(null)
                 .description(null)
@@ -81,7 +97,7 @@ public class UpdateBooksTests extends BaseApiTest {
     @Description("Verify updating a book with empty strings returns 400 Bad Request")
     @Severity(SeverityLevel.NORMAL)
     void checkUpdateBookWithEmptyFieldsShouldReturn400() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo();
         Book updatedBook = book.toBuilder()
                 .title("")
                 .description("")
@@ -91,14 +107,16 @@ public class UpdateBooksTests extends BaseApiTest {
 
         booksApi.updateBook(book.id(), updatedBook)
                 .verify()
-                .verifyStatusCodeBadRequest();
+                .verifyStatusCodeBadRequest()
+                .verifyContentType("application/problem+json")
+                .verifyIntegerJsonPath("status", SC_BAD_REQUEST);
     }
 
     @Test
     @Description("Verify updating each single field one by one (title, description, pageCount, excerpt, publishDate)")
     @Severity(SeverityLevel.NORMAL)
     void checkUpdateBookSingleFieldsIndividually() {
-        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);;
+        Book book = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo();
 
         String[] fields = {"title", "description", "pageCount", "excerpt", "publishDate"};
         for (String field : fields) {

@@ -1,14 +1,28 @@
 package com.fakeRestApi.tests.author;
 
 import com.fakeRestApi.models.Author;
-import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
-import io.qameta.allure.*;
-import org.junit.jupiter.api.*;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
+import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.apache.http.HttpStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,13 +31,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Feature("Authors API")
 @Story("Get Authors")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SoftAssertionsExtension.class)
 public class GetAuthorsTests extends BaseApiTest {
 
     private static List<Author> allAuthors;
 
     @BeforeAll
     void initAllAuthors() {
-        allAuthors = authorsApi.getAuthors().asListOfPojo(Author.class);
+        allAuthors = authorsApi.getAuthors().asListOfPojo();
         assertThat(allAuthors)
                 .as("Authors list should be fetched before tests")
                 .isNotNull()
@@ -37,10 +52,10 @@ public class GetAuthorsTests extends BaseApiTest {
         List<Author> authors = authorsApi.getAuthors()
                 .verify()
                 .verifyStatusCodeOk()
-                .verifyPojoListNotEmpty(Book.class)
+                .verifyPojoListNotEmpty()
                 .validateJsonSchema("schemas/author.json")
                 .toResponse()
-                .asListOfPojo(Author.class);
+                .asListOfPojo();
 
         assertThat(authors)
                 .as("Authors list should not be empty")
@@ -56,23 +71,23 @@ public class GetAuthorsTests extends BaseApiTest {
     @Test
     @Description("Verify GET /Authors/{id} returns correct author by valid ID")
     @Severity(SeverityLevel.CRITICAL)
-    void checkGetAuthorByIdShouldReturnCorrectAuthor() {
-        Author expectedAuthor = allAuthors.get(0);
-        Author actualAuthor = authorsApi.getAuthorById(expectedAuthor.id()).asPojo(Author.class);
+    void checkGetAuthorByIdShouldReturnCorrectAuthor(SoftAssertions softly) {
+        Author expectedAuthor = allAuthors.getFirst();
+        Author actualAuthor = authorsApi.getAuthorById(expectedAuthor.id()).asPojo();
 
-        assertThat(actualAuthor)
+        softly.assertThat(actualAuthor)
                 .as("Fetched author should not be null")
                 .isNotNull();
 
-        assertThat(actualAuthor.id())
+        softly.assertThat(actualAuthor.id())
                 .as("Author ID should match")
                 .isEqualTo(expectedAuthor.id());
 
-        assertThat(actualAuthor.firstName())
+        softly.assertThat(actualAuthor.firstName())
                 .as("Author first name should match expected value")
                 .isEqualTo(expectedAuthor.firstName());
 
-        assertThat(actualAuthor.lastName())
+        softly.assertThat(actualAuthor.lastName())
                 .as("Author last name should match expected value")
                 .isEqualTo(expectedAuthor.lastName());
     }
@@ -124,15 +139,15 @@ public class GetAuthorsTests extends BaseApiTest {
     @Test
     @Description("Verify GET /Authors/authors/books/{idBook} returns authors related to that book")
     @Severity(SeverityLevel.NORMAL)
-    void checkGetAuthorsByBookIdShouldReturnRelatedAuthors() {
-        int bookId = allAuthors.get(0).idBook();
-        List<Author> authorsByBook = authorsApi.getAuthorsByBookId(bookId).asListOfPojo(Author.class);
+    void checkGetAuthorsByBookIdShouldReturnRelatedAuthors(SoftAssertions softly) {
+        int bookId = allAuthors.getFirst().idBook();
+        List<Author> authorsByBook = authorsApi.getAuthorsByBookId(bookId).asListOfPojo();
 
-        assertThat(authorsByBook)
+        softly.assertThat(authorsByBook)
                 .as("Authors list for book ID %s should not be empty", bookId)
                 .isNotEmpty();
 
-        assertThat(authorsByBook)
+        softly.assertThat(authorsByBook)
                 .as("All authors should reference the same book ID")
                 .allMatch(author -> author.idBook() == bookId);
     }

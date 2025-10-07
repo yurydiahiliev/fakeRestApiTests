@@ -3,13 +3,28 @@ package com.fakeRestApi.tests.book;
 import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
-import io.qameta.allure.*;
-import org.junit.jupiter.api.*;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
+import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -21,13 +36,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Feature("Books API")
 @Story("Get Books")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SoftAssertionsExtension.class)
 public class GetBooksApiTests extends BaseApiTest {
 
     private static List<Book> allBooks;
 
     @BeforeAll
     void initAllBooks() {
-        allBooks = booksApi.getBooks().asListOfPojo(Book.class);
+        allBooks = booksApi.getBooks().asListOfPojo();
         assertThat(allBooks)
                 .as("Book list should not be empty before tests")
                 .isNotEmpty();
@@ -40,10 +56,10 @@ public class GetBooksApiTests extends BaseApiTest {
         List<Book> books = booksApi.getBooks()
                 .verify()
                 .verifyStatusCodeOk()
-                .verifyPojoListNotEmpty(Book.class)
+                .verifyPojoListNotEmpty()
                 .validateJsonSchema("schemas/book.json")
                 .toResponse()
-                .asListOfPojo(Book.class);
+                .asListOfPojo();
 
         assertThat(books)
                 .as("Book list should not be empty")
@@ -78,36 +94,36 @@ public class GetBooksApiTests extends BaseApiTest {
     @Test
     @Description("Verify GET /Books/{id} returns the correct book when using a valid random ID")
     @Severity(SeverityLevel.CRITICAL)
-    void checkGetBookByRandomIdShouldReturnValidBookById() {
+    void checkGetBookByRandomIdShouldReturnValidBookById(SoftAssertions softly) {
         int randomIndex = new Random().nextInt(allBooks.size());
         Book expectedBook = allBooks.get(randomIndex - 1);
         Book actualBook = booksApi.getBookById(String.valueOf(randomIndex))
                 .verify()
                 .validateJsonSchema("schemas/singleBook.json")
                 .toResponse()
-                .asPojo(Book.class);
+                .asPojo();
 
-        assertThat(actualBook)
+        softly.assertThat(actualBook)
                 .as("Book retrieved by ID should not be null")
                 .isNotNull();
 
-        assertThat(actualBook.id())
+        softly.assertThat(actualBook.id())
                 .as("Book ID should match expected value")
                 .isEqualTo(expectedBook.id());
 
-        assertThat(actualBook.title())
+        softly.assertThat(actualBook.title())
                 .as("Book title should match expected value for ID %s", expectedBook.id())
                 .isEqualTo(expectedBook.title());
 
-        assertThat(actualBook.description())
+        softly.assertThat(actualBook.description())
                 .as("Book description should match expected value for ID %s", expectedBook.id())
                 .isEqualTo(expectedBook.description());
 
-        assertThat(actualBook.pageCount())
+        softly.assertThat(actualBook.pageCount())
                 .as("Book page count should match expected value for ID %s", expectedBook.id())
                 .isEqualTo(expectedBook.pageCount());
 
-        assertThat(actualBook.excerpt())
+        softly.assertThat(actualBook.excerpt())
                 .as("Book excerpt should match expected value for ID %s", expectedBook.id())
                 .isEqualTo(expectedBook.excerpt());
     }
@@ -166,7 +182,7 @@ public class GetBooksApiTests extends BaseApiTest {
     @Test
     @Description("Verify that books are returned in sequential order by ID")
     @Severity(SeverityLevel.NORMAL)
-    void checkBooksReturnedInSequentialOrder() {
+    void checkBooksReturnedInSequentialOrder(SoftAssertions softly) {
         assertThat(allBooks)
                 .as("Book list must be initialized from previous test")
                 .isNotNull()
@@ -175,7 +191,7 @@ public class GetBooksApiTests extends BaseApiTest {
         boolean isSequential = Stream.iterate(1, index -> index < allBooks.size(), index -> index + 1)
                 .allMatch(index -> allBooks.get(index).id() - allBooks.get(index - 1).id() == 1);
 
-        assertThat(isSequential)
+        softly.assertThat(isSequential)
                 .as("Book IDs should increase sequentially (1, 2, 3, ...)")
                 .isTrue();
 
@@ -183,7 +199,7 @@ public class GetBooksApiTests extends BaseApiTest {
                 .sorted(Comparator.comparingInt(Book::id))
                 .toList();
 
-        assertThat(allBooks)
+        softly.assertThat(allBooks)
                 .as("Books should be sorted by ID ascending")
                 .containsExactlyElementsOf(sortedById);
     }
@@ -212,12 +228,12 @@ public class GetBooksApiTests extends BaseApiTest {
     @Test
     @Description("GET /Books/{id} should return the correct book for an existing ID")
     @Severity(SeverityLevel.CRITICAL)
-    void checkGetBookByIdShouldReturnValidBook() {
-        Book newBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
-        Book fetched = booksApi.getBookById(String.valueOf(newBook.id())).asPojo(Book.class);
+    void checkGetBookByIdShouldReturnValidBook(SoftAssertions softly) {
+        Book newBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo();
+        Book fetched = booksApi.getBookById(newBook.id()).asPojo();
 
-        assertThat(fetched).as("Fetched book should not be null").isNotNull();
-        assertThat(fetched.id()).as("ID should match the requested ID").isEqualTo(newBook.id());
-        assertThat(fetched.title()).as("Title should match the original one").isEqualTo(newBook.title());
+        softly.assertThat(fetched).as("Fetched book should not be null").isNotNull();
+        softly.assertThat(fetched.id()).as("ID should match the requested ID").isEqualTo(newBook.id());
+        softly.assertThat(fetched.title()).as("Title should match the original one").isEqualTo(newBook.title());
     }
 }

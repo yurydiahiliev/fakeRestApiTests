@@ -2,8 +2,18 @@ package com.fakeRestApi.tests.author;
 
 import com.fakeRestApi.models.Author;
 import com.fakeRestApi.tests.BaseApiTest;
-import io.qameta.allure.*;
-import org.junit.jupiter.api.*;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
+import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -17,12 +27,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Feature("Authors API")
 @Story("Update Authors")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SoftAssertionsExtension.class)
 public class UpdateAuthorsTests extends BaseApiTest {
 
     @Test
     @Description("Verify PUT /Authors/{id} updates an existing author successfully")
     @Severity(SeverityLevel.CRITICAL)
-    void shouldUpdateExistingAuthor() {
+    void shouldUpdateExistingAuthor(SoftAssertions softly) {
         Author author = getExistingAuthor();
         Author updated = Author.builder()
                 .id(author.id())
@@ -31,16 +42,16 @@ public class UpdateAuthorsTests extends BaseApiTest {
                 .lastName("Updated_" + author.lastName())
                 .build();
 
-        Author response = authorsApi.updateAuthor(author.id(), updated).asPojo(Author.class);
+        Author response = authorsApi.updateAuthor(author.id(), updated).asPojo();
 
-        assertThat(response)
+        softly.assertThat(response)
                 .as("Response body should not be null")
                 .isNotNull();
 
-        assertThat(response.id()).isEqualTo(author.id());
-        assertThat(response.firstName()).isEqualTo(updated.firstName());
-        assertThat(response.lastName()).isEqualTo(updated.lastName());
-        assertThat(response.idBook()).isEqualTo(author.idBook());
+        softly.assertThat(response.id()).isEqualTo(author.id());
+        softly.assertThat(response.firstName()).isEqualTo(updated.firstName());
+        softly.assertThat(response.lastName()).isEqualTo(updated.lastName());
+        softly.assertThat(response.idBook()).isEqualTo(author.idBook());
     }
 
     @Test
@@ -164,7 +175,7 @@ public class UpdateAuthorsTests extends BaseApiTest {
     }
 
     private Author getExistingAuthor() {
-        List<Author> authors = authorsApi.getAuthors().asListOfPojo(Author.class);
+        List<Author> authors = authorsApi.getAuthors().asListOfPojo();
         assertThat(authors)
                 .as("At least one author should exist in system")
                 .isNotEmpty();

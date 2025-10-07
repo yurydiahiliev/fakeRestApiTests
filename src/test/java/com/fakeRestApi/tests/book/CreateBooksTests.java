@@ -39,7 +39,12 @@ public class CreateBooksTests extends BaseApiTest {
     @Severity(SeverityLevel.CRITICAL)
     void checkUserCanCreateBookWithAllFields(SoftAssertions softly) {
         Book book = TestDataManager.bookWithValidAllFields();
-        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(book)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(createdBook)
                 .as("Created book object should not be null")
@@ -78,7 +83,12 @@ public class CreateBooksTests extends BaseApiTest {
         Book book = TestDataManager.bookWithEmptyFields().toBuilder()
                 .publishDate(Instant.now().toString())
                 .build();
-        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(book)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(createdBook)
                 .as("Created book object should not be null")
@@ -147,7 +157,12 @@ public class CreateBooksTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkUserCanCreateBookWithNullFields(SoftAssertions softly) {
         Book book = TestDataManager.bookWithNullFields();
-        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(book)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(createdBook)
                 .as("Created book object should not be null")
@@ -185,7 +200,11 @@ public class CreateBooksTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkCreateBookWithSingleField(String fieldName) {
         Book partialBook = TestDataManager.bookWithSingleField(fieldName);
-        Book createdBook = booksApi.createBook(partialBook).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(partialBook)
+                .verify()
+                .verifyStatusCodeOk()
+                .toResponse()
+                .asPojo();
 
         assertThat(createdBook)
                 .as("Created book response should not be null for field: %s", fieldName)
@@ -258,8 +277,18 @@ public class CreateBooksTests extends BaseApiTest {
     @Severity(SeverityLevel.NORMAL)
     void checkUserCanCreateBookWithSameDataTwice(SoftAssertions softly) {
         Book originalBook = TestDataManager.bookWithValidAllFields();
-        Book firstCreatedBook = booksApi.createBook(originalBook).asPojo(Book.class);
-        Book secondCreatedBook = booksApi.createBook(originalBook).asPojo(Book.class);
+        Book firstCreatedBook = booksApi.createBook(originalBook)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
+        Book secondCreatedBook = booksApi.createBook(originalBook)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(firstCreatedBook)
                 .as("First created book should not be null")
@@ -289,7 +318,12 @@ public class CreateBooksTests extends BaseApiTest {
                 .description("9876543210")
                 .build();
 
-        Book created = booksApi.createBook(book).asPojo(Book.class);
+        Book created = booksApi.createBook(book)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created)
                 .as("Response should contain numeric title and description as-is")
@@ -309,7 +343,12 @@ public class CreateBooksTests extends BaseApiTest {
                 .excerpt(symbols)
                 .build();
 
-        Book created = booksApi.createBook(book).asPojo(Book.class);
+        Book created = booksApi.createBook(book)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created)
                 .as("API should accept special symbols without sanitization errors")
@@ -330,7 +369,11 @@ public class CreateBooksTests extends BaseApiTest {
                 .excerpt("🧪 test excerpt 🌟")
                 .build();
 
-        Book created = booksApi.createBook(book).asPojo(Book.class);
+        Book created = booksApi.createBook(book).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created)
                 .as("API should correctly handle UTF-8 and emoji characters")
@@ -349,7 +392,12 @@ public class CreateBooksTests extends BaseApiTest {
                 .description("Test " + mixed)
                 .build();
 
-        Book created = booksApi.createBook(book).asPojo(Book.class);
+        Book created = booksApi.createBook(book)
+                .verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(created.title())
                 .as("Title should retain mixed characters")
@@ -369,7 +417,7 @@ public class CreateBooksTests extends BaseApiTest {
                 .extract()
                 .response();
 
-        assertBadRequestResponse(response, "");
+        assertBadRequestResponse(response);
 
         String errorMessage = response.jsonPath().getString("errors.\"\"[0]");
         assertThat(errorMessage)
@@ -390,7 +438,11 @@ public class CreateBooksTests extends BaseApiTest {
                 .publishDate(pastDate.toString())
                 .build();
 
-        Book createdBook = booksApi.createBook(book).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(book).verify()
+                .verifyStatusCodeOk()
+                .validateJsonSchema("schemas/singleBook.json")
+                .toResponse()
+                .asPojo();
 
         softly.assertThat(createdBook)
                 .as("Created book object should not be null")
@@ -419,5 +471,42 @@ public class CreateBooksTests extends BaseApiTest {
         softly.assertThat(createdBook.publishDate())
                 .as("Publish date should match the provided past date")
                 .startsWith(pastDate.toString().substring(0, 10));
+    }
+
+    private void assertBadRequestResponse(Response response) {
+        assertThat(response.statusCode())
+                .as("Expected HTTP 400 Bad Request")
+                .isEqualTo(SC_BAD_REQUEST);
+
+        assertThat(response.getContentType())
+                .as("Response should use RFC7807 problem+json format")
+                .contains("application/problem+json");
+
+        String title = response.jsonPath().getString("title");
+        Integer status = response.jsonPath().getInt("status");
+        String type = response.jsonPath().getString("type");
+        String traceId = response.jsonPath().getString("traceId");
+
+        String errorMessage = response.jsonPath().getString("errors.\"\"[0]");
+
+        assertThat(title)
+                .as("Title should describe validation failure")
+                .isEqualTo("One or more validation errors occurred.");
+
+        assertThat(status)
+                .as("Status in body should match HTTP 400")
+                .isEqualTo(SC_BAD_REQUEST);
+
+        assertThat(type)
+                .as("Type should reference RFC 7231 section 6.5.1")
+                .contains("rfc7231#section-6.5.1");
+
+        assertThat(errorMessage)
+                .as("Error message should be present and meaningful")
+                .isNotBlank();
+
+        assertThat(traceId)
+                .as("Trace ID should be present for troubleshooting")
+                .isNotBlank();
     }
 }

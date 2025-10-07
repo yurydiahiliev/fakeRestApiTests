@@ -3,10 +3,17 @@ package com.fakeRestApi.tests.book;
 import com.fakeRestApi.models.Book;
 import com.fakeRestApi.tests.BaseApiTest;
 import com.fakeRestApi.utils.TestDataManager;
-import io.qameta.allure.*;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
 import io.restassured.response.Response;
 import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -26,7 +33,7 @@ public class DeleteBooksTests extends BaseApiTest {
     @Description("Verify that deleting an existing book returns 204 No Content and subsequent GET returns 404 Not Found")
     @Severity(SeverityLevel.CRITICAL)
     void checkDeleteExistingBookShouldReturnOkAndBookShouldBeGone() {
-        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo();
 
         booksApi
                 .deleteBook(createdBook.id())
@@ -86,7 +93,7 @@ public class DeleteBooksTests extends BaseApiTest {
     @Description("Verify double deletion returns 404 for the second call")
     @Severity(SeverityLevel.NORMAL)
     void checkDeleteBookTwiceShouldReturnNotFoundSecondTime() {
-        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo(Book.class);
+        Book createdBook = booksApi.createBook(TestDataManager.bookWithValidAllFields()).asPojo();
 
         booksApi
                 .deleteBook(createdBook.id())
