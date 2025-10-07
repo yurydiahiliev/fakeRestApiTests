@@ -3,7 +3,7 @@
 ![Build](https://github.com/yurydiahiliev/fakeRestApiTests/actions/workflows/gradle.yml/badge.svg)
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Gradle](https://img.shields.io/badge/Gradle-8.10-green)
-![Allure](https://img.shields.io/badge/Allure-Report-orange)
+[![Allure Report](https://img.shields.io/badge/Allure-Report-blue)](https://yurydiahiliev.github.io/fakeRestApiTests/)
 
 End-to-end API test suite for the [Fake REST API](https://fakerestapi.azurewebsites.net/index.html) using **JUnit 5**, **REST Assured**, **AssertJ**, **Lombok**, **Log4j2**, and **Allure Reporting**.  
 Built with **Gradle 8.10** and **Java 21**.
@@ -206,9 +206,10 @@ The project includes a **CI/CD pipeline** that:
 `.github/workflows/gradle.yml`
 
 ### Report URL
-```
-https://yurydiahiliev.github.io/fakeRestApiTests/
-```
+The latest Allure report is available via link:
+
+**[https://yurydiahiliev.github.io/fakeRestApiTests/](https://yurydiahiliev.github.io/fakeRestApiTests/)**
+
 
 ### Key steps
 -  `Run Tests` → executes all test suites
