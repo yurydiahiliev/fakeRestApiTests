@@ -1,2 +1,8 @@
-rootProject.name = 'fakeRestApiTests'
+rootProject.name = "fakeRestApiTests"
 
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}

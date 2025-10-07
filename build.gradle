@@ -41,7 +41,7 @@ dependencies {
 }
 
 allure {
-    version = '2.29.0'
+    version = '2.25.0'
     adapter {
         frameworks {
             junit5 {
@@ -57,6 +57,7 @@ test {
     useJUnitPlatform()
 
     def effectiveLogLevel = System.getProperty("log.level", "INFO")
+    systemProperty 'allure.results.directory', 'build/allure-results'
     systemProperty "log.level", effectiveLogLevel
     println "Using log.level = ${effectiveLogLevel}"
 

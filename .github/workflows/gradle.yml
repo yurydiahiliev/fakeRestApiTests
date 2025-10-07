@@ -2,14 +2,14 @@ name: API Automation CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   test:
-    name: Run API Tests and Generate Allure Report
+    name: Fake Rest Api Tests
     runs-on: ubuntu-latest
 
     steps:
