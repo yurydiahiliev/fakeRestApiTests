@@ -12,7 +12,7 @@ import java.util.List;
 @Slf4j
 public class BooksApi extends BaseApi {
 
-    private static final String BOOKS_PATH = "/Books";
+    public static final String BOOKS_PATH = "/Books";
 
     /**
      * GET /Books – Retrieve all books with schema validation and logs

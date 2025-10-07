@@ -1,26 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
-    <Properties>
-        <!-- Allow dynamic log level override with -Dlog.level -->
-        <Property name="log.level">${sys:log.level:-INFO}</Property>
-        <Property name="pattern">%d{HH:mm:ss.SSS} %-5level [%t] %c{1} - %msg%n</Property>
-    </Properties>
-
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="${pattern}" />
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
     </Appenders>
 
     <Loggers>
-        <!-- Your package -->
-        <Logger name="com.fakeRestApi" level="${log.level}" additivity="false">
+        <!-- Root logger with default INFO level -->
+        <Root level="${sys:LOG_LEVEL:-info}">
+            <AppenderRef ref="Console"/>
+        </Root>
+
+        <!-- Reduce noise from Allure internal loggers -->
+        <Logger name="io.qameta.allure" level="WARN" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
 
-        <!-- Root logger -->
-        <Root level="${log.level}">
+        <!-- Reduce noise from REST Assured -->
+        <Logger name="io.restassured" level="WARN" additivity="false">
             <AppenderRef ref="Console"/>
-        </Root>
+        </Logger>
     </Loggers>
 </Configuration>

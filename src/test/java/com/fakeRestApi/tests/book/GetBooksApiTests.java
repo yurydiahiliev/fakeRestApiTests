@@ -1,10 +1,8 @@
 package com.fakeRestApi.tests.book;
 
-import com.fakeRestApi.apiClient.BooksApi;
 import com.fakeRestApi.models.Book;
 import io.qameta.allure.*;
 import io.restassured.response.Response;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -14,19 +12,21 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.fakeRestApi.apiClient.BooksApi.BOOKS_PATH;
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Fake REST API tests")
 @Feature("Books API")
 @Story("Get Books")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class GetBooksApiTests {
+public class GetBooksApiTests extends BaseApiTest {
 
-    private static final BooksApi booksApi = new BooksApi();
     private static List<Book> allBooks;
 
     @BeforeAll
-    static void initAllBooks() {
+    void initAllBooks() {
         allBooks = booksApi.getBooks();
         assertThat(allBooks)
                 .as("Book list should not be empty before tests")
@@ -109,14 +109,14 @@ public class GetBooksApiTests {
     @Description("Verify GET /Books/{id} returns 400 Bad Request when ID is invalid")
     void checkGetBookWithInvalidIdShouldReturnBadRequest(String invalidId) {
         Response response = booksApi.spec()
-                .get("/Books/" + invalidId) // simulate invalid IDs directly in path
+                .get(BOOKS_PATH + "/" + invalidId) // simulate invalid IDs directly in path
                 .then()
                 .extract()
                 .response();
 
         assertThat(response.statusCode())
                 .as("Expected 400 Bad Request for invalid ID '%s'", invalidId)
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+                .isEqualTo(SC_BAD_REQUEST);
 
         assertThat(response.getContentType())
                 .as("Response for invalid ID '%s' should be problem+json", invalidId)
@@ -133,7 +133,7 @@ public class GetBooksApiTests {
 
         assertThat(status)
                 .as("Status code field should equal 400 for invalid ID '%s'", invalidId)
-                .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+                .isEqualTo(SC_BAD_REQUEST);
 
         assertThat(errorMessage)
                 .as("Error message for invalid ID '%s' should mention invalid value", invalidId)
@@ -150,7 +150,7 @@ public class GetBooksApiTests {
     @Description("Verify GET /Books/{id} returns 404 Not Found for nonexistent or invalid numeric IDs")
     void checkGetBookWithNonexistentIdShouldReturnNotFound(String invalidId) {
         Response response = booksApi.spec()
-                .get("/Books/" + invalidId)
+                .get(BOOKS_PATH + "/" + invalidId)
                 .then()
                 .log().ifValidationFails()
                 .extract()
@@ -158,7 +158,7 @@ public class GetBooksApiTests {
 
         assertThat(response.statusCode())
                 .as("Expected 404 Not Found for ID '%s'", invalidId)
-                .isEqualTo(HttpStatus.SC_NOT_FOUND);
+                .isEqualTo(SC_NOT_FOUND);
 
         assertThat(response.getContentType())
                 .as("Response content type should be application/problem+json")
@@ -179,7 +179,7 @@ public class GetBooksApiTests {
 
         assertThat(status)
                 .as("Status field should equal 404 for ID '%s'", invalidId)
-                .isEqualTo(HttpStatus.SC_NOT_FOUND);
+                .isEqualTo(SC_NOT_FOUND);
 
         assertThat(traceId)
                 .as("Trace ID should be present for 404 response (ID '%s')", invalidId)

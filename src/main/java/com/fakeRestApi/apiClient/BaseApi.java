@@ -23,7 +23,6 @@ public abstract class BaseApi {
     protected BaseApi() {
         String baseUrl = ConfigHandler.getBaseUrl();
         String logLevel = ConfigHandler.getLogLevel();
-        System.out.println("LOG LEVEL: " + logLevel);
 
         List<Filter> filters = new ArrayList<>();
         filters.add(new AllureRestAssured());
