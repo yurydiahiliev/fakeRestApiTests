@@ -409,7 +409,7 @@ public class CreateBooksTests extends BaseApiTest {
     @Test
     @Description("Verify that sending POST /Books without a request body returns 400 Bad Request")
     @Severity(SeverityLevel.CRITICAL)
-    void checkCreateBookWithoutBodyShouldReturnBadRequest() {
+    void checkCreateBookWithoutBodyShouldReturnBadRequest(SoftAssertions softly) {
         Response response = booksApi.spec()
                 .when()
                 .post(BOOKS_PATH)
@@ -417,7 +417,7 @@ public class CreateBooksTests extends BaseApiTest {
                 .extract()
                 .response();
 
-        assertBadRequestResponse(response);
+        assertBadRequestResponse(response, softly);
 
         String errorMessage = response.jsonPath().getString("errors.\"\"[0]");
         assertThat(errorMessage)
@@ -473,12 +473,12 @@ public class CreateBooksTests extends BaseApiTest {
                 .startsWith(pastDate.toString().substring(0, 10));
     }
 
-    private void assertBadRequestResponse(Response response) {
-        assertThat(response.statusCode())
+    private void assertBadRequestResponse(Response response, SoftAssertions softly) {
+        softly.assertThat(response.statusCode())
                 .as("Expected HTTP 400 Bad Request")
                 .isEqualTo(SC_BAD_REQUEST);
 
-        assertThat(response.getContentType())
+        softly.assertThat(response.getContentType())
                 .as("Response should use RFC7807 problem+json format")
                 .contains("application/problem+json");
 
@@ -489,23 +489,23 @@ public class CreateBooksTests extends BaseApiTest {
 
         String errorMessage = response.jsonPath().getString("errors.\"\"[0]");
 
-        assertThat(title)
+        softly.assertThat(title)
                 .as("Title should describe validation failure")
                 .isEqualTo("One or more validation errors occurred.");
 
-        assertThat(status)
+        softly.assertThat(status)
                 .as("Status in body should match HTTP 400")
                 .isEqualTo(SC_BAD_REQUEST);
 
-        assertThat(type)
+        softly.assertThat(type)
                 .as("Type should reference RFC 7231 section 6.5.1")
                 .contains("rfc7231#section-6.5.1");
 
-        assertThat(errorMessage)
+        softly.assertThat(errorMessage)
                 .as("Error message should be present and meaningful")
                 .isNotBlank();
 
-        assertThat(traceId)
+        softly.assertThat(traceId)
                 .as("Trace ID should be present for troubleshooting")
                 .isNotBlank();
     }

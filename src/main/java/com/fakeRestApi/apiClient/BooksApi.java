@@ -62,7 +62,7 @@ public class BooksApi extends BaseApi<Book> {
      * DELETE /Books/{id} — Remove a book
      */
     public ResponseParser<Book> deleteBook(Object id) {
-        log.info("Deleting book ID {}...", id);
+        log.info("Deleting book ID {}.", id);
         ResponseParser<Book> response = delete(BOOKS_PATH + "/{id}", "id", id);
         log.info("Deleted book ID {}.", id);
         return response;

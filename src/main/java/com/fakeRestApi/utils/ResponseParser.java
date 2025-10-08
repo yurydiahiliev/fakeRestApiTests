@@ -83,16 +83,6 @@ public class ResponseParser<T> {
     }
 
     /**
-     * Creates an untyped ResponseParser for backward compatibility.
-     * @param response RestAssured response
-     * @return new untyped ResponseParser instance or empty parser if response is null
-     */
-    public static ResponseParser<Object> of(Response response) {
-        if (response == null) return ResponseParser.empty(Object.class);
-        return new ResponseParser<>(response, Object.class);
-    }
-
-    /**
      * Returns an empty ResponseParser for the specified type.
      * @param type class type for deserialization
      * @param <T> generic type of the POJO
@@ -100,14 +90,6 @@ public class ResponseParser<T> {
      */
     public static <T> ResponseParser<T> empty(Class<T> type) {
         return new ResponseParser<>(null, type);
-    }
-
-    /**
-     * Returns an empty untyped ResponseParser.
-     * @return empty untyped ResponseParser
-     */
-    public static ResponseParser<Object> empty() {
-        return new ResponseParser<>(null, Object.class);
     }
 
     /**

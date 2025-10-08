@@ -32,13 +32,13 @@ public abstract class BaseApiTest {
     @BeforeEach
     @Step("Start test")
     void logTestStart(TestInfo testInfo) {
-        log.info("---- STARTED: {} - {}", testInfo.getDisplayName(), testInfo.getTestMethod().map(Method::getName).orElse("unknown"));
+        log.info("---- STARTED: {} - {}", testInfo.getDisplayName(), getTestMethodName(testInfo));
     }
 
     @AfterEach
     @Step("Finish test")
     void logTestFinish(TestInfo testInfo) {
-        log.info("---- FINISHED: {} - {}", testInfo.getDisplayName(), testInfo.getTestMethod().map(Method::getName).orElse("unknown"));
+        log.info("---- FINISHED: {} - {}", testInfo.getDisplayName(), getTestMethodName(testInfo));
     }
 
     @AfterAll
@@ -46,5 +46,9 @@ public abstract class BaseApiTest {
     void tearDown() {
         log.info("========== TEST SUITE FINISHED ==========");
         RestAssured.reset();
+    }
+
+    private String getTestMethodName(TestInfo testInfo) {
+        return testInfo.getTestMethod().map(Method::getName).orElse("unknown");
     }
 }

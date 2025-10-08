@@ -60,7 +60,7 @@ public class AuthorsApi extends BaseApi<Author> {
 
     /** DELETE /Authors/{id} — Delete author */
     public ResponseParser<Author> deleteAuthor(Object id) {
-        log.info("Deleting author ID {}...", id);
+        log.info("Deleting author ID {}.", id);
         ResponseParser<Author> response = delete(AUTHORS_PATH + "/{id}", "id", id);
         log.info("Deleted author ID {}.", id);
         return response;

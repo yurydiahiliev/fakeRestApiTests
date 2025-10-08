@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GetAuthorsTests extends BaseApiTest {
 
     private static List<Author> allAuthors;
+    private final String regexpForMatchingNames = "^[\\p{L}\\d\\-\\s]+$";
 
     @BeforeAll
     void initAllAuthors() {
@@ -186,10 +187,10 @@ public class GetAuthorsTests extends BaseApiTest {
                 .allSatisfy(author -> {
                     assertThat(author.firstName())
                             .as("First name should contain only letters, digits, spaces, or dashes for Author ID %s", author.id())
-                            .matches("^[\\p{L}\\d\\-\\s]+$");
+                            .matches(regexpForMatchingNames);
                     assertThat(author.lastName())
                             .as("Last name should contain only letters, digits, spaces, or dashes for Author ID %s", author.id())
-                            .matches("^[\\p{L}\\d\\-\\s]+$");
+                            .matches(regexpForMatchingNames);
                 });
     }
 }
